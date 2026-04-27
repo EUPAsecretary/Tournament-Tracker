@@ -442,7 +442,11 @@ function hideLoading() {
 // ── Save helpers ──────────────────────────────────────────────
 async function savePools()    { await fsSet(POOLS_DOC(),    { data: STATE.pools }); }
 async function saveGames()    { await fsSet(GAMES_DOC(),    { data: STATE.games }); }
-async function saveBrackets() { await fsSet(BRACKETS_DOC(), { data: STATE.brackets }); }
+async function saveBrackets() {
+  // Sanitise: Firestore rejects undefined values — replace with null
+  const safe = JSON.parse(JSON.stringify(STATE.brackets, (k,v) => v === undefined ? null : v));
+  await fsSet(BRACKETS_DOC(), { data: safe });
+}
 async function saveReports()  { await fsSet(REPORTS_DOC(),  { data: STATE.reports }); }
 async function saveSpirit()   { await fsSet(SPIRIT_DOC(),   { data: STATE.spirit }); }
 async function saveConfig()   { await fsSet(CONFIG_DOC(),   STATE.config); }
@@ -484,7 +488,7 @@ function resolveGame(bracket, defKey) {
   const def = GAME_DEFS.find(d => d.key === defKey);
   if (!def) return { homeId:null, awayId:null, homeIsBye:false, awayIsBye:false };
   const g = bracket.games?.[defKey] || {};
-  if (g.manualHomeId !== undefined || g.manualAwayId !== undefined)
+  if (g.manualHomeId !== null && g.manualHomeId !== undefined || g.manualAwayId !== null && g.manualAwayId !== undefined)
     return { homeId: g.manualHomeId||null, awayId: g.manualAwayId||null, homeIsBye:false, awayIsBye:false };
   if (def.phase === 'qf') {
     const hRaw = bracket.seeds?.[def.seedH], aRaw = bracket.seeds?.[def.seedA];
@@ -679,7 +683,7 @@ function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData, brack
   bracketTeamsData.forEach(row => {
     const bName=(row['Bracket']||'').trim(), seed=parseInt(row['Seed']), tName=(row['Team Name']||'').trim();
     if (!bName||!seed||seed<1||seed>8) return;
-    if (!bracketMap[bName]) { bracketMap[bName]={ id:'br_'+bName.replace(/\s+/g,'_').toLowerCase(), name:bName, seeds:{}, games:{} }; GAME_DEFS.forEach(d=>{ bracketMap[bName].games[d.key]={field:null,date:'',time:'',manualHomeId:undefined,manualAwayId:undefined}; }); }
+    if (!bracketMap[bName]) { bracketMap[bName]={ id:'br_'+bName.replace(/\s+/g,'_').toLowerCase(), name:bName, seeds:{}, games:{} }; GAME_DEFS.forEach(d=>{ bracketMap[bName].games[d.key]={field:null,date:'',time:'',manualHomeId:null,manualAwayId:null}; }); }
     const poolTeam = pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===tName.toLowerCase());
     bracketMap[bName].seeds[seed] = poolTeam ? poolTeam.id : (tName||null);
   });
@@ -788,7 +792,7 @@ window.resetPoolGame    = async (gid) => {
 
 // ── Admin: Brackets ───────────────────────────────────────────
 function makeBracket(id,name) {
-  const games={}; GAME_DEFS.forEach(d=>{games[d.key]={field:null,date:'',time:'',manualHomeId:undefined,manualAwayId:undefined};});
+  const games={}; GAME_DEFS.forEach(d=>{games[d.key]={field:null,date:'',time:'',manualHomeId:null,manualAwayId:null};});
   return{id,name,seeds:{},games};
 }
 window.addBracket = async () => { STATE.brackets.push(makeBracket('br'+Date.now(),'New Bracket')); await saveBrackets(); renderBracketsEditor(); };
@@ -1124,6 +1128,7 @@ function cDiff(a,b,games,poolId){
 // ── Public bracket ────────────────────────────────────────────
 function renderPublicBrackets(){
   const el = document.getElementById('th-bracket');
+  console.log('[Bracket] STATE.brackets:', JSON.stringify(STATE.brackets.map(b=>({id:b.id,name:b.name,seedCount:Object.keys(b.seeds||{}).length,seedValues:Object.values(b.seeds||{})}))));
   if(!STATE.brackets.length || STATE.brackets.every(b=>!Object.keys(b.seeds||{}).length)){
     el.innerHTML='<div class="empty">Brackets not set up yet</div>';return;
   }
