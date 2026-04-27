@@ -553,12 +553,33 @@ function parseCSVRow(line) {
   result.push(cur); return result;
 }
 
-async function fetchSheet(baseUrl, sheetName) {
+function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+async function fetchSheet(baseUrl, sheetName, attempt=1) {
   const url = sheetToCsvUrl(baseUrl, sheetName);
-  if (!url) throw new Error('Invalid sheet URL');
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Failed to fetch "${sheetName}": ${resp.status}`);
-  return parseCSV(await resp.text());
+  if (!url) throw new Error('Invalid sheet URL — make sure it is a Google Sheets URL');
+  try {
+    const resp = await fetch(url);
+    if (resp.status === 404) {
+      // 404 from Google often means not published or tab name wrong —
+      // retry up to 3 times with increasing delay before giving up
+      if (attempt < 3) {
+        await delay(800 * attempt);
+        return fetchSheet(baseUrl, sheetName, attempt + 1);
+      }
+      throw new Error(`Tab "${sheetName}" not found (404). Make sure the sheet is published to web (File → Share → Publish to web → Entire Document → CSV) and the tab name matches exactly.`);
+    }
+    if (!resp.ok) throw new Error(`Failed to fetch "${sheetName}": HTTP ${resp.status}`);
+    const text = await resp.text();
+    // Google sometimes returns an HTML error page instead of CSV when not published
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      throw new Error(`Tab "${sheetName}" returned an HTML page instead of CSV data. The sheet may not be published to web yet.`);
+    }
+    return parseCSV(text);
+  } catch(e) {
+    if (e.message.includes('fetch')) throw new Error(`Network error fetching "${sheetName}". Check your internet connection.`);
+    throw e;
+  }
 }
 
 window.syncFromSheet = async () => {
@@ -566,14 +587,24 @@ window.syncFromSheet = async () => {
   if (!url) { showSyncStatus('No sheet URL saved.','err'); return; }
   const btn = document.getElementById('sync-btn');
   btn.textContent = 'Syncing…'; btn.disabled = true;
-  showSyncStatus('Fetching from Google Sheets…','info');
   try {
-    const [poolTeams, poolSchedule, bracketTeams, bracketSchedule] = await Promise.all([
-      fetchSheet(url,'Pool Play Teams'),
-      fetchSheet(url,'Pool Schedule'),
-      fetchSheet(url,'Bracket Play Teams'),
-      fetchSheet(url,'Bracket Schedule'),
-    ]);
+    // Fetch sequentially with a pause between each to avoid Google rate-limiting
+    showSyncStatus('Fetching Pool Play Teams…','info');
+    const poolTeams = await fetchSheet(url, 'Pool Play Teams');
+    await delay(400);
+
+    showSyncStatus('Fetching Pool Schedule…','info');
+    const poolSchedule = await fetchSheet(url, 'Pool Schedule');
+    await delay(400);
+
+    showSyncStatus('Fetching Bracket Play Teams…','info');
+    const bracketTeams = await fetchSheet(url, 'Bracket Play Teams');
+    await delay(400);
+
+    showSyncStatus('Fetching Bracket Schedule…','info');
+    const bracketSchedule = await fetchSheet(url, 'Bracket Schedule');
+
+    showSyncStatus('Applying data…','info');
     applySheetData(poolTeams, poolSchedule, bracketTeams, bracketSchedule);
     const now = new Date().toLocaleString();
     STATE.config.lastSync = now;
@@ -583,7 +614,7 @@ window.syncFromSheet = async () => {
     renderTeamSelector();
     renderPoolsEditor();
   } catch(e) {
-    showSyncStatus(`✗ Sync failed: ${e.message}. Check the sheet is published to web and tab names match exactly.`,'err');
+    showSyncStatus(`✗ ${e.message}`,'err');
   } finally {
     btn.textContent = '↻ Sync from sheet now'; btn.disabled = false;
   }
