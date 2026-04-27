@@ -831,17 +831,86 @@ function renderBracketsEditor() {
 
 // ── Admin: Spirit ─────────────────────────────────────────────
 function renderAdminSpirit() {
-  const entries=Object.entries(STATE.spirit);
   const el=document.getElementById('admin-spirit-list');
+  const teams=allTeams();
+  const entries=Object.values(STATE.spirit);
   if(!entries.length){el.innerHTML='<div class="empty">No spirit submissions yet</div>';return;}
-  el.innerHTML=entries.map(([k,s])=>{
+
+  let html='';
+
+  // ── Spirit score leaderboard (same as public view) ────────
+  const rec={};
+  teams.forEach(t=>{rec[t.id]={total:0,count:0};});
+  entries.forEach(s=>{
+    if(!rec[s.ratedId])return;
     const total=WFDF_CATS.reduce((sum,c)=>sum+(s.scores[c.key]||0),0);
-    return`<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div><strong>${esc(findTeam(s.raterId)?.name||'?')}</strong><span style="color:var(--color-text-secondary);font-size:12px"> rated </span><strong>${esc(findTeam(s.ratedId)?.name||'?')}</strong></div><span class="pill pill-blue">${total}/20</span></div>
-      ${WFDF_CATS.map(c=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--color-text-secondary)"><span>${c.label}</span><span style="font-weight:500;color:var(--color-text-primary)">${s.scores[c.key]??'—'}</span></div>`).join('')}
-      ${s.spiritPlayer?`<div style="margin-top:6px;font-size:12px;padding:6px 10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)"><span style="color:var(--color-text-secondary)">Spirit player: </span><strong>${esc(s.spiritPlayer)}</strong></div>`:''}
+    rec[s.ratedId].total+=total;rec[s.ratedId].count++;
+  });
+  const leaderboard=teams.map(t=>({...t,avg:rec[t.id].count?rec[t.id].total/rec[t.id].count:null,count:rec[t.id].count}))
+    .sort((a,b)=>(b.avg??-1)-(a.avg??-1));
+
+  html+=`<div class="card"><h3>Spirit leaderboard</h3>
+    <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Average WFDF spirit score (out of 20), all teams.</p>
+    <div class="spirit-row header"><span>#</span><span>Team</span><span style="text-align:right">Avg</span><span style="text-align:right">Games</span></div>`;
+  leaderboard.forEach((r,i)=>{
+    const avg=r.avg!==null?r.avg.toFixed(1):'—';
+    const bar=r.avg!==null?`<div style="height:3px;background:var(--color-border-tertiary);border-radius:2px;margin-top:3px"><div style="height:3px;background:#1D9E75;border-radius:2px;width:${Math.round(r.avg/20*100)}%"></div></div>`:'';
+    html+=`<div class="spirit-row" style="${i===0&&r.avg!==null?'color:#27500A':''}">
+      <span>${i+1}</span>
+      <div><span>${esc(r.name)}</span><span style="font-size:11px;color:var(--color-text-secondary);margin-left:4px">(${esc(r.poolName)})</span>${bar}</div>
+      <span style="text-align:right;font-weight:500">${avg}</span>
+      <span style="text-align:right;color:var(--color-text-secondary)">${r.count}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // ── Spirit player nominations ranked by frequency ─────────
+  // Count nominations per player name (case-insensitive), track their team
+  const nomMap={};
+  entries.forEach(s=>{
+    if(!s.spiritPlayer||!s.spiritPlayer.trim())return;
+    const key=s.spiritPlayer.trim().toLowerCase();
+    const team=findTeam(s.ratedId);
+    if(!nomMap[key])nomMap[key]={name:s.spiritPlayer.trim(),teamName:team?.name||'?',teamPool:team?.poolName||'',count:0};
+    nomMap[key].count++;
+    // Keep the most recently used capitalisation of the name
+    nomMap[key].name=s.spiritPlayer.trim();
+  });
+  const nominations=Object.values(nomMap).sort((a,b)=>b.count-a.count);
+
+  if(nominations.length){
+    html+=`<div class="card"><h3>Spirit player nominations</h3>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Players nominated by opposing teams, ranked by number of nominations.</p>
+      <div style="display:grid;grid-template-columns:24px 1fr 1fr auto;gap:6px;align-items:center;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:11px;font-weight:500;color:var(--color-text-secondary)">
+        <span>#</span><span>Player</span><span>Team</span><span style="text-align:right">Noms</span>
+      </div>`;
+    nominations.forEach((n,i)=>{
+      html+=`<div style="display:grid;grid-template-columns:24px 1fr 1fr auto;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px${i===nominations.length-1?';border-bottom:none':''}">
+        <span style="color:var(--color-text-secondary)">${i+1}</span>
+        <span style="font-weight:${i===0?'600':'400'}">${esc(n.name)}</span>
+        <div><span>${esc(n.teamName)}</span><span style="font-size:11px;color:var(--color-text-secondary);margin-left:4px">(${esc(n.teamPool)})</span></div>
+        <span style="text-align:right;font-weight:500;font-size:14px">${n.count}</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // ── Raw submissions (full detail, admin only) ─────────────
+  html+=`<div class="card"><h3>All submissions</h3>`;
+  html+=Object.entries(STATE.spirit).map(([k,s])=>{
+    const total=WFDF_CATS.reduce((sum,c)=>sum+(s.scores[c.key]||0),0);
+    return`<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid var(--color-border-tertiary)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:13px"><strong>${esc(findTeam(s.raterId)?.name||'?')}</strong><span style="color:var(--color-text-secondary);font-size:12px"> rated </span><strong>${esc(findTeam(s.ratedId)?.name||'?')}</strong></div>
+        <span class="pill pill-blue">${total}/20</span>
+      </div>
+      ${WFDF_CATS.map(c=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0;color:var(--color-text-secondary)"><span>${c.label}</span><span style="font-weight:500;color:var(--color-text-primary)">${s.scores[c.key]??'—'}</span></div>`).join('')}
+      ${s.spiritPlayer?`<div style="margin-top:4px;font-size:12px;color:var(--color-text-secondary)">Spirit player: <strong style="color:var(--color-text-primary)">${esc(s.spiritPlayer)}</strong></div>`:''}
     </div>`;
   }).join('');
+  html+=`</div>`;
+
+  el.innerHTML=html;
 }
 
 // ── Settings ──────────────────────────────────────────────────
