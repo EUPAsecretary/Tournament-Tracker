@@ -1128,18 +1128,33 @@ function renderPublicBrackets(){
   const validBrackets = STATE.brackets.filter(b=>Object.keys(b.seeds||{}).length>0);
   if(!validBrackets.length){el.innerHTML='<div class="empty">No seeds assigned yet</div>';return;}
 
+  // Figure out which bracket the current team belongs to
+  // by checking if their team ID appears in any bracket's seeds
+  let defaultBracketId = validBrackets[0].id; // fallback: first bracket
+  if(currentTeamId){
+    for(const b of validBrackets){
+      const seedValues = Object.values(b.seeds||{});
+      if(seedValues.includes(currentTeamId)){
+        defaultBracketId = b.id;
+        break;
+      }
+    }
+  }
+
   // Tab buttons if multiple brackets
   let html='';
   if(validBrackets.length>1){
     html+=`<div class="bracket-tabs">`;
-    validBrackets.forEach((b,i)=>{
-      html+=`<button class="bracket-tab-btn${i===0?' active':''}" onclick="switchBracketTab(this,'bracket-view-${b.id}')">${esc(b.name)}</button>`;
+    validBrackets.forEach((b)=>{
+      const isDefault = b.id === defaultBracketId;
+      html+=`<button class="bracket-tab-btn${isDefault?' active':''}" onclick="switchBracketTab(this,'bracket-view-${b.id}')">${esc(b.name)}</button>`;
     });
     html+=`</div>`;
   }
 
-  validBrackets.forEach((bracket,bi)=>{
-    html+=`<div id="bracket-view-${bracket.id}" style="${bi>0?'display:none':''}">`;
+  validBrackets.forEach((bracket)=>{
+    const isDefault = bracket.id === defaultBracketId;
+    html+=`<div id="bracket-view-${bracket.id}" style="${isDefault?'':'display:none'}">`;
     html+=buildBracketTree(bracket);
     html+=`</div>`;
   });
