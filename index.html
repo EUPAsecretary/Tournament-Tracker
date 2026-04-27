@@ -511,7 +511,14 @@ window.adminTab = (btn, pid) => {
   if (pid==='ap-spirit')  renderAdminSpirit();
 };
 
-// ── Sheet sync ────────────────────────────────────────────────
+// ── Sheet sync (Google Sheets API v4) ─────────────────────────
+const SHEETS_API_KEY = 'AIzaSyBwDOi2CVeqY89RZ4ohN_I3HNpdVT5hiac';
+
+function extractSheetId(url) {
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
 function initAdminSheet() {
   document.getElementById('sheet-url-input').value = STATE.config.sheetUrl || '';
   document.getElementById('last-sync-info').textContent = STATE.config.lastSync ? `Last synced: ${STATE.config.lastSync}` : 'Never synced';
@@ -524,85 +531,47 @@ window.saveSheetUrl = async () => {
   showSyncStatus('URL saved.','info');
 };
 
-function sheetToCsvUrl(baseUrl, sheetName) {
-  const match = baseUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) return null;
-  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-}
-
-function parseCSV(text) {
-  const lines = text.split('\n').filter(l=>l.trim());
-  if (!lines.length) return [];
-  const headers = parseCSVRow(lines[0]).map(h=>h.trim());
-  return lines.slice(1).map(line => {
-    const vals = parseCSVRow(line);
+// Fetch a sheet tab via Google Sheets API v4 and return array of row objects keyed by header
+async function fetchSheetTab(sheetId, tabName) {
+  const range = encodeURIComponent(`'${tabName}'`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${SHEETS_API_KEY}`;
+  const resp = await fetch(url);
+  if (resp.status === 403) throw new Error(`Access denied to sheet. Make sure the sheet is shared as "Anyone with the link can view".`);
+  if (resp.status === 400) throw new Error(`Tab "${tabName}" not found. Check the tab name matches exactly (it is case-sensitive).`);
+  if (!resp.ok) {
+    const body = await resp.json().catch(()=>({}));
+    throw new Error(`Failed to fetch "${tabName}": ${body?.error?.message || 'HTTP '+resp.status}`);
+  }
+  const data = await resp.json();
+  const rows = data.values || [];
+  if (rows.length < 2) return []; // no data rows
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h,i) => { obj[h] = vals[i]!==undefined ? vals[i].trim() : ''; });
+    headers.forEach((h, i) => { obj[h] = (row[i] || '').trim(); });
     return obj;
-  }).filter(row => Object.values(row).some(v=>v));
-}
-
-function parseCSVRow(line) {
-  const result=[]; let cur=''; let inQ=false;
-  for (let i=0; i<line.length; i++) {
-    const c=line[i];
-    if (c==='"') { if (inQ&&line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
-    else if (c===','&&!inQ) { result.push(cur); cur=''; }
-    else cur+=c;
-  }
-  result.push(cur); return result;
-}
-
-function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
-
-async function fetchSheet(baseUrl, sheetName, attempt=1) {
-  const url = sheetToCsvUrl(baseUrl, sheetName);
-  if (!url) throw new Error('Invalid sheet URL — make sure it is a Google Sheets URL');
-  try {
-    const resp = await fetch(url);
-    if (resp.status === 404) {
-      // 404 from Google often means not published or tab name wrong —
-      // retry up to 3 times with increasing delay before giving up
-      if (attempt < 3) {
-        await delay(800 * attempt);
-        return fetchSheet(baseUrl, sheetName, attempt + 1);
-      }
-      throw new Error(`Tab "${sheetName}" not found (404). Make sure the sheet is published to web (File → Share → Publish to web → Entire Document → CSV) and the tab name matches exactly.`);
-    }
-    if (!resp.ok) throw new Error(`Failed to fetch "${sheetName}": HTTP ${resp.status}`);
-    const text = await resp.text();
-    // Google sometimes returns an HTML error page instead of CSV when not published
-    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-      throw new Error(`Tab "${sheetName}" returned an HTML page instead of CSV data. The sheet may not be published to web yet.`);
-    }
-    return parseCSV(text);
-  } catch(e) {
-    if (e.message.includes('fetch')) throw new Error(`Network error fetching "${sheetName}". Check your internet connection.`);
-    throw e;
-  }
+  }).filter(row => Object.values(row).some(v => v));
 }
 
 window.syncFromSheet = async () => {
   const url = STATE.config.sheetUrl;
   if (!url) { showSyncStatus('No sheet URL saved.','err'); return; }
+  const sheetId = extractSheetId(url);
+  if (!sheetId) { showSyncStatus('✗ Invalid URL — paste the full Google Sheets URL (it should contain /spreadsheets/d/).','err'); return; }
   const btn = document.getElementById('sync-btn');
   btn.textContent = 'Syncing…'; btn.disabled = true;
   try {
-    // Fetch sequentially with a pause between each to avoid Google rate-limiting
     showSyncStatus('Fetching Pool Play Teams…','info');
-    const poolTeams = await fetchSheet(url, 'Pool Play Teams');
-    await delay(400);
+    const poolTeams = await fetchSheetTab(sheetId, 'Pool Play Teams');
 
     showSyncStatus('Fetching Pool Schedule…','info');
-    const poolSchedule = await fetchSheet(url, 'Pool Schedule');
-    await delay(400);
+    const poolSchedule = await fetchSheetTab(sheetId, 'Pool Schedule');
 
     showSyncStatus('Fetching Bracket Play Teams…','info');
-    const bracketTeams = await fetchSheet(url, 'Bracket Play Teams');
-    await delay(400);
+    const bracketTeams = await fetchSheetTab(sheetId, 'Bracket Play Teams');
 
     showSyncStatus('Fetching Bracket Schedule…','info');
-    const bracketSchedule = await fetchSheet(url, 'Bracket Schedule');
+    const bracketSchedule = await fetchSheetTab(sheetId, 'Bracket Schedule');
 
     showSyncStatus('Applying data…','info');
     applySheetData(poolTeams, poolSchedule, bracketTeams, bracketSchedule);
