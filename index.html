@@ -533,7 +533,7 @@ window.saveSheetUrl = async () => {
 
 // Fetch a sheet tab via Google Sheets API v4 and return array of row objects keyed by header
 async function fetchSheetTab(sheetId, tabName) {
-  const range = encodeURIComponent("'" + tabName + "'");
+  const range = encodeURIComponent(tabName);
   const url = "https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + range + "?key=" + SHEETS_API_KEY + "&valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING";
   console.log('[Sync] Fetching tab: ' + tabName + ' — ' + url);
   const resp = await fetch(url);
@@ -546,18 +546,25 @@ async function fetchSheetTab(sheetId, tabName) {
   const data = await resp.json();
   console.log('[Sync] "' + tabName + '" raw:', JSON.stringify(data).slice(0, 600));
   const rows = data.values || [];
-  if (rows.length < 2) {
-    console.log('[Sync] "' + tabName + '" has ' + rows.length + ' rows (needs at least 2)');
-    return [];
+  if (!rows.length) return [];
+
+  // Skip title/note/legend rows — find the real header row by looking for
+  // known column header keywords. Real headers are short labels, not sentences.
+  const KNOWN_HEADERS = ['pool','team name','pool seed','home team','away team',
+    'field','date','time','bracket','seed','game','notes','home seed','away seed'];
+  let headerRowIdx = 0;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const rowLower = (rows[i] || []).map(c => (c||'').trim().toLowerCase());
+    const matches = rowLower.filter(c => KNOWN_HEADERS.includes(c)).length;
+    if (matches >= 2) { headerRowIdx = i; break; }
   }
-  const headers = rows[0].map(h => (h||'').trim());
-  console.log('[Sync] "' + tabName + '" headers:', headers);
-  const parsed = rows.slice(1).map(row => {
+
+  const headers = rows[headerRowIdx].map(h => (h||'').trim());
+  const parsed = rows.slice(headerRowIdx + 1).map(row => {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = (row[i] || '').trim(); });
     return obj;
   }).filter(row => Object.values(row).some(v => v));
-  console.log('[Sync] "' + tabName + '" parsed ' + parsed.length + ' data rows. First:', JSON.stringify(parsed[0]));
   return parsed;
 }
 
