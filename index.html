@@ -533,24 +533,32 @@ window.saveSheetUrl = async () => {
 
 // Fetch a sheet tab via Google Sheets API v4 and return array of row objects keyed by header
 async function fetchSheetTab(sheetId, tabName) {
-  const range = encodeURIComponent(`'${tabName}'`);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${SHEETS_API_KEY}`;
+  const range = encodeURIComponent("'" + tabName + "'");
+  const url = "https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + range + "?key=" + SHEETS_API_KEY + "&valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING";
+  console.log('[Sync] Fetching tab: ' + tabName + ' — ' + url);
   const resp = await fetch(url);
-  if (resp.status === 403) throw new Error(`Access denied to sheet. Make sure the sheet is shared as "Anyone with the link can view".`);
-  if (resp.status === 400) throw new Error(`Tab "${tabName}" not found. Check the tab name matches exactly (it is case-sensitive).`);
+  if (resp.status === 403) throw new Error("Access denied to sheet. Make sure the sheet is shared as 'Anyone with the link can view'.");
+  if (resp.status === 400) throw new Error("Tab \"" + tabName + "\" not found. Check the tab name matches exactly (it is case-sensitive).");
   if (!resp.ok) {
     const body = await resp.json().catch(()=>({}));
-    throw new Error(`Failed to fetch "${tabName}": ${body?.error?.message || 'HTTP '+resp.status}`);
+    throw new Error("Failed to fetch \"" + tabName + "\": " + (body?.error?.message || 'HTTP ' + resp.status));
   }
   const data = await resp.json();
+  console.log('[Sync] "' + tabName + '" raw:', JSON.stringify(data).slice(0, 600));
   const rows = data.values || [];
-  if (rows.length < 2) return []; // no data rows
-  const headers = rows[0].map(h => h.trim());
-  return rows.slice(1).map(row => {
+  if (rows.length < 2) {
+    console.log('[Sync] "' + tabName + '" has ' + rows.length + ' rows (needs at least 2)');
+    return [];
+  }
+  const headers = rows[0].map(h => (h||'').trim());
+  console.log('[Sync] "' + tabName + '" headers:', headers);
+  const parsed = rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = (row[i] || '').trim(); });
     return obj;
   }).filter(row => Object.values(row).some(v => v));
+  console.log('[Sync] "' + tabName + '" parsed ' + parsed.length + ' data rows. First:', JSON.stringify(parsed[0]));
+  return parsed;
 }
 
 window.syncFromSheet = async () => {
