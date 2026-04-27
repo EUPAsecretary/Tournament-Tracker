@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ultimate Tournament</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --color-text-primary:#1a1a1a;
+  --color-text-secondary:#666;
+  --color-background-primary:#fff;
+  --color-background-secondary:#f5f5f3;
+  --color-border-tertiary:#e0ddd6;
+  --color-border-secondary:#ccc;
+  --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+}
+body{font-family:var(--font-sans);color:var(--color-text-primary);font-size:15px;background:#fafaf8}
+.app{max-width:680px;margin:0 auto;padding:1rem}
+.screen{display:none}.screen.active{display:block}
+h2{font-size:18px;font-weight:500;margin-bottom:1rem}
+h3{font-size:16px;font-weight:500;margin-bottom:.75rem}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+.btn{display:inline-block;padding:8px 16px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-primary);font-size:14px;cursor:pointer;transition:background .15s;font-family:var(--font-sans)}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-primary{background:var(--color-text-primary);color:#fff;border-color:var(--color-text-primary)}
+.btn-primary:hover{opacity:.85;background:var(--color-text-primary)}
+.btn-sm{padding:5px 10px;font-size:13px}
+.btn-danger{border-color:#A32D2D;color:#A32D2D}
+.btn-danger:hover{background:#FCEBEB}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.pill-green{background:#EAF3DE;color:#27500A}
+.pill-amber{background:#FAEEDA;color:#633806}
+.pill-gray{background:#F1EFE8;color:#444}
+.pill-red{background:#FCEBEB;color:#791F1F}
+.pill-blue{background:#E6F1FB;color:#0C447C}
+label{display:block;font-size:13px;color:var(--color-text-secondary);margin-bottom:4px}
+input,select,textarea{width:100%;padding:8px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:#fff;color:var(--color-text-primary);font-size:14px;font-family:var(--font-sans)}
+textarea{resize:vertical;min-height:60px}
+.form-row{margin-bottom:12px}
+.score-inputs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;margin:12px 0}
+.score-inputs input{text-align:center;font-size:20px;font-weight:500}
+.vs{font-size:14px;color:var(--color-text-secondary);font-weight:500}
+.standing-row{display:grid;grid-template-columns:24px 1fr repeat(5,38px);gap:6px;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.standing-row:last-child{border-bottom:none}
+.standing-row.header{font-size:11px;color:var(--color-text-secondary);font-weight:500;padding-bottom:4px}
+.spirit-row{display:grid;grid-template-columns:28px 1fr 60px 50px;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.spirit-row:last-child{border-bottom:none}
+.spirit-row.header{font-size:11px;color:var(--color-text-secondary);font-weight:500}
+.match-row{display:flex;align-items:flex-start;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px;gap:8px}
+.match-row:last-child{border-bottom:none}
+.wfdf-cat{margin-bottom:12px}
+.wfdf-options{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.wfdf-opt{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:15px;font-weight:500;cursor:pointer;background:transparent;color:var(--color-text-primary);transition:all .15s;flex-shrink:0;font-family:var(--font-sans)}
+.wfdf-opt:hover:not(.selected){background:var(--color-background-secondary)}
+.wfdf-opt.selected{background:var(--color-text-primary);color:#fff;border-color:var(--color-text-primary);transform:scale(1.08);box-shadow:0 0 0 2px var(--color-text-primary)}
+.spirit-total{font-size:22px;font-weight:500;text-align:center;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin:12px 0}
+.team-selector-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:.5rem}
+.team-btn{padding:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);background:#fff;color:var(--color-text-primary);font-size:14px;cursor:pointer;text-align:center;transition:all .15s;font-family:var(--font-sans)}
+.team-btn:hover{border-color:var(--color-text-primary);background:var(--color-background-secondary)}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--color-text-secondary);font-size:13px;cursor:pointer;margin-bottom:1rem;padding:0;font-family:var(--font-sans)}
+.back-btn:hover{color:var(--color-text-primary)}
+.alert{padding:10px 14px;border-radius:var(--border-radius-md);font-size:13px;margin-bottom:12px}
+.alert-success{background:#EAF3DE;color:#27500A;border:0.5px solid #C0DD97}
+.alert-error{background:#FCEBEB;color:#791F1F;border:0.5px solid #F7C1C1}
+.alert-amber{background:#FAEEDA;color:#633806;border:0.5px solid #FAC775}
+.tab-bar{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem;overflow-x:auto}
+.tab{padding:8px 14px;font-size:14px;border:none;background:none;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;font-family:var(--font-sans)}
+.tab.active{color:var(--color-text-primary);font-weight:500;border-bottom-color:var(--color-text-primary)}
+.empty{color:var(--color-text-secondary);font-size:13px;text-align:center;padding:2rem 0}
+.admin-badge{background:#FAEEDA;color:#633806;border:0.5px solid #FAC775;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.section-label{font-size:11px;color:var(--color-text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 .4rem}
+.conflict-box{background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--border-radius-md);padding:8px 12px;font-size:12px;color:#791F1F;margin-top:4px}
+.conflict-scores{display:flex;gap:12px;margin-top:4px}
+.conflict-score-item{display:flex;flex-direction:column;gap:1px}
+.my-score-col{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 4px}
+.field-badge{display:inline-block;background:#E6F1FB;color:#0C447C;border-radius:var(--border-radius-md);padding:2px 8px;font-size:11px;font-weight:500;margin-right:4px}
+.time-badge{display:inline-block;background:#F1EFE8;color:#444;border-radius:var(--border-radius-md);padding:2px 8px;font-size:11px;font-weight:500;margin-right:4px}
+.pool-block{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;margin-bottom:12px}
+.pool-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.team-chip{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:13px;margin-bottom:6px}
+.team-chip input{border:none;background:transparent;padding:0;font-size:13px;flex:1}
+.bg-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);margin-bottom:6px;overflow:hidden}
+.bg-card.champ{border-left:3px solid #1D9E75}
+.bg-card.consol{border-left:3px solid #7F77DD}
+.bg-card.place{border-left:3px solid #BA7517}
+.bg-header{padding:5px 10px;font-size:11px;font-weight:500;color:var(--color-text-secondary);background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center}
+.bg-team{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:13px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.bg-team:last-child{border-bottom:none}
+.bg-team.winner{font-weight:500;background:#EAF3DE;color:#27500A}
+.bg-team.bye-team{color:var(--color-text-secondary);font-style:italic}
+.place-pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:500;background:#FAEEDA;color:#633806;margin-left:4px}
+.admin-game-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.sync-status{font-size:12px;padding:8px 12px;border-radius:var(--border-radius-md);margin-top:8px}
+.sync-ok{background:#EAF3DE;color:#27500A}
+.sync-err{background:#FCEBEB;color:#791F1F}
+.sync-info{background:#F1EFE8;color:#444}
+.sheet-url-row{display:flex;gap:8px;align-items:flex-end}
+.sheet-url-row input{flex:1}
+code{font-family:monospace;font-size:12px;background:var(--color-background-secondary);padding:2px 6px;border-radius:4px}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid #e0ddd6;border-top-color:#1a1a1a;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.realtime-dot{display:inline-block;width:7px;height:7px;background:#1D9E75;border-radius:50%;margin-right:4px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:#666">Loading tournament data…</div>
+</div>
+
+<div class="app">
+<!-- Team select -->
+<div id="screen-team-select" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+    <h2 style="margin:0">Ultimate Tournament</h2>
+    <button class="btn btn-sm" onclick="goAdmin()">Admin</button>
+  </div>
+  <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">
+    <span class="realtime-dot"></span>Live — select your team to continue
+  </p>
+  <div id="team-selector-root"></div>
+</div>
+
+<!-- Admin login -->
+<div id="screen-admin-login" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-team-select')">&#8592; Back</button>
+  <h2>Admin access</h2>
+  <div class="card">
+    <div class="form-row"><label>Admin password</label><input type="password" id="admin-pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkAdmin()"/></div>
+    <div id="admin-login-err" class="alert alert-error" style="display:none">Incorrect password</div>
+    <button class="btn btn-primary" onclick="checkAdmin()">Enter</button>
+  </div>
+</div>
+
+<!-- Admin -->
+<div id="screen-admin" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0">Admin</h2><span class="admin-badge">Admin</span></div>
+    <button class="btn btn-sm" onclick="showScreen('screen-team-select')">Exit</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="adminTab(this,'ap-sheet')">Sheet Sync</button>
+    <button class="tab" onclick="adminTab(this,'ap-games')">Pool Games</button>
+    <button class="tab" onclick="adminTab(this,'ap-bracket')">Brackets</button>
+    <button class="tab" onclick="adminTab(this,'ap-spirit')">Spirit</button>
+    <button class="tab" onclick="adminTab(this,'ap-settings')">Settings</button>
+  </div>
+
+  <div id="ap-sheet" class="admin-panel">
+    <h3>Google Sheets sync</h3>
+    <div class="card">
+      <div class="form-row">
+        <label>Google Sheet URL</label>
+        <div class="sheet-url-row">
+          <input type="text" id="sheet-url-input" placeholder="https://docs.google.com/spreadsheets/d/..."/>
+          <button class="btn btn-primary" onclick="saveSheetUrl()">Save</button>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin-top:6px">Sheet must be published to web (File → Share → Publish to web → CSV).</p>
+      </div>
+      <button class="btn btn-primary" id="sync-btn" onclick="syncFromSheet()" style="width:100%">↻ Sync from sheet now</button>
+      <div id="sync-status" class="sync-status sync-info" style="display:none"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:8px">Expected sheet structure</h3>
+      <div class="section-label">Tab 1 — Pool Play Teams</div>
+      <p style="font-size:12px;margin-bottom:4px">Columns: <code>Pool</code> · <code>Team Name</code> · <code>Pool Seed</code></p>
+      <div class="section-label">Tab 2 — Pool Schedule</div>
+      <p style="font-size:12px;margin-bottom:4px">Columns: <code>Home Team</code> · <code>Away Team</code> · <code>Field</code> · <code>Date</code> · <code>Time</code></p>
+      <div class="section-label">Tab 3 — Bracket Play Teams</div>
+      <p style="font-size:12px;margin-bottom:4px">Columns: <code>Bracket</code> · <code>Seed</code> · <code>Team Name</code></p>
+      <div class="section-label">Tab 4 — Bracket Schedule</div>
+      <p style="font-size:12px;margin-bottom:4px">Columns: <code>Bracket</code> · <code>Home Seed</code> · <code>Away Seed</code> · <code>Game</code> · <code>Field</code> · <code>Date</code> · <code>Time</code></p>
+      <div class="section-label">Last sync</div>
+      <div id="last-sync-info" style="font-size:13px;color:var(--color-text-secondary)">Never synced</div>
+    </div>
+    <div class="card">
+      <h3>Manual pool editor</h3>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">Use this for quick edits without touching the sheet.</p>
+      <div id="pools-editor"></div>
+      <button class="btn" onclick="addPool()">+ Add pool</button>
+      <div style="margin-top:12px"><button class="btn btn-primary" onclick="savePoolsManual()">Save pools & teams</button></div>
+    </div>
+  </div>
+
+  <div id="ap-games" class="admin-panel" style="display:none">
+    <h3>Pool games</h3>
+    <div id="admin-games-list"></div>
+  </div>
+
+  <div id="ap-bracket" class="admin-panel" style="display:none">
+    <div id="brackets-editor"></div>
+    <button class="btn" onclick="addBracket()" style="margin-top:4px">+ Add bracket</button>
+  </div>
+
+  <div id="ap-spirit" class="admin-panel" style="display:none">
+    <h3>Spirit submissions</h3>
+    <div id="admin-spirit-list"></div>
+  </div>
+
+  <div id="ap-settings" class="admin-panel" style="display:none">
+    <h3>Admin password</h3>
+    <div class="card">
+      <div class="form-row"><label>New password</label><input type="password" id="new-admin-pw"/></div>
+      <button class="btn btn-primary" onclick="changeAdminPw()">Update</button>
+      <div id="pw-changed-msg" class="alert alert-success" style="display:none;margin-top:8px">Updated</div>
+    </div>
+    <h3 style="margin-top:1rem">Danger zone</h3>
+    <div class="card" style="display:flex;flex-direction:column;gap:8px">
+      <div><p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">Reset all scores and spirit only.</p><button class="btn btn-danger" onclick="resetScores()">Reset scores</button></div>
+      <div style="border-top:0.5px solid var(--color-border-tertiary);padding-top:8px"><p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">Wipe everything including pools and brackets.</p><button class="btn btn-danger" onclick="fullReset()">Full reset</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Team home -->
+<div id="screen-team-home" class="screen">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <button class="btn btn-primary" style="padding:9px 18px;font-size:14px;font-weight:500;white-space:nowrap" onclick="openReportScore(false)">+ Report score</button>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:500;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="team-home-name"></div>
+      <span id="team-home-division"></span>
+    </div>
+    <button class="btn btn-sm" onclick="showScreen('screen-team-select')">Switch</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="teamTab(this,'th-schedule')">All games</button>
+    <button class="tab" onclick="teamTab(this,'th-standings')">Standings</button>
+    <button class="tab" onclick="teamTab(this,'th-bracket')">Bracket</button>
+    <button class="tab" onclick="teamTab(this,'th-spirit')">Spirit</button>
+  </div>
+  <div id="th-schedule"></div>
+  <div id="th-standings" style="display:none"></div>
+  <div id="th-bracket" style="display:none"></div>
+  <div id="th-spirit" style="display:none"></div>
+</div>
+
+<!-- Report score -->
+<div id="screen-report" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-team-home')">&#8592; Back</button>
+  <h2 id="report-screen-title">Report game result</h2>
+  <div id="report-game-picker" class="card">
+    <div class="form-row"><label>Select game</label><select id="game-select" onchange="onGameSelect()"><option value="">— choose —</option></select></div>
+  </div>
+  <div id="report-form" style="display:none">
+    <div id="correction-notice" class="alert alert-amber" style="display:none"></div>
+    <div class="card">
+      <h3>Final score</h3>
+      <div class="score-inputs">
+        <div class="my-score-col">
+          <div id="score-my-label" style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;font-weight:500"></div>
+          <input type="number" id="score-mine" min="0" placeholder="0" oninput="updateReportUI()"/>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px;text-align:center">my team</div>
+        </div>
+        <div class="vs">vs</div>
+        <div>
+          <div id="score-opp-label" style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px"></div>
+          <input type="number" id="score-opp" min="0" placeholder="0" oninput="updateReportUI()"/>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px;text-align:center">opponent</div>
+        </div>
+      </div>
+      <div id="winner-display" style="text-align:center;font-size:13px;color:var(--color-text-secondary);margin-top:4px"></div>
+    </div>
+    <div id="spirit-section" class="card">
+      <h3>Spirit score — <span id="spirit-for-label"></span></h3>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Rate opponents on each WFDF category (0–4).</p>
+      <div id="wfdf-categories"></div>
+      <div class="spirit-total"><span style="font-size:13px;color:var(--color-text-secondary)">Total: </span><span id="spirit-total-val">0</span><span style="font-size:13px;color:var(--color-text-secondary)"> / 20</span></div>
+    </div>
+    <div id="nomination-section" class="card">
+      <h3>Spirit player nomination</h3>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Name one player from the opposing team who showed exceptional spirit.</p>
+      <div class="form-row"><label>Player name <span style="color:#A32D2D">*</span></label><input type="text" id="spirit-player" placeholder="e.g. Jamie Smith"/></div>
+    </div>
+    <div id="report-alert" style="display:none"></div>
+    <button class="btn btn-primary" id="report-submit-btn" onclick="submitReport()" style="width:100%">Submit result</button>
+  </div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, getDocs, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCvGShn0RB8tmtAg-1_IFqgmqV3HJMzQbY",
+  authDomain: "tournament-tracker-7d2c9.firebaseapp.com",
+  projectId: "tournament-tracker-7d2c9",
+  storageBucket: "tournament-tracker-7d2c9.firebasestorage.app",
+  messagingSenderId: "769870169406",
+  appId: "1:769870169406:web:ba74f56ed3f710c2f6d86f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── Firestore doc refs ────────────────────────────────────────
+const CONFIG_DOC  = () => doc(db,'tournament','config');
+const POOLS_DOC   = () => doc(db,'tournament','pools');
+const GAMES_DOC   = () => doc(db,'tournament','games');
+const BRACKETS_DOC= () => doc(db,'tournament','brackets');
+const REPORTS_DOC = () => doc(db,'tournament','reports');
+const SPIRIT_DOC  = () => doc(db,'tournament','spirit');
+
+// ── In-memory state (mirrors Firestore) ──────────────────────
+let STATE = {
+  config:   { adminPw:'admin123', sheetUrl:'', lastSync:'' },
+  pools:    [],
+  games:    [],
+  brackets: [],
+  reports:  {},
+  spirit:   {}
+};
+
+let currentTeamId = null;
+let spiritScores  = {};
+let correctionGameId = null;
+let editPools = [];
+let unsubscribers = [];
+
+// ── Firestore helpers ─────────────────────────────────────────
+async function fsGet(ref) {
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+}
+async function fsSet(ref, data) {
+  await setDoc(ref, data, { merge: true });
+}
+
+// Load everything once, then set up listeners
+async function initApp() {
+  try {
+    const [config, pools, games, brackets, reports, spirit] = await Promise.all([
+      fsGet(CONFIG_DOC()),
+      fsGet(POOLS_DOC()),
+      fsGet(GAMES_DOC()),
+      fsGet(BRACKETS_DOC()),
+      fsGet(REPORTS_DOC()),
+      fsGet(SPIRIT_DOC()),
+    ]);
+    STATE.config   = config   || STATE.config;
+    STATE.pools    = pools?.data    || [];
+    STATE.games    = games?.data    || [];
+    STATE.brackets = brackets?.data || [];
+    STATE.reports  = reports?.data  || {};
+    STATE.spirit   = spirit?.data   || {};
+
+    // Real-time listeners
+    setupListeners();
+    renderTeamSelector();
+    hideLoading();
+    showScreen('screen-team-select');
+  } catch(e) {
+    console.error(e);
+    hideLoading();
+    showScreen('screen-team-select');
+  }
+}
+
+function setupListeners() {
+  // Unsubscribe previous
+  unsubscribers.forEach(u=>u());
+  unsubscribers = [];
+
+  const listen = (ref, key, field) => {
+    const unsub = onSnapshot(ref, snap => {
+      if (!snap.exists()) return;
+      const d = snap.data();
+      STATE[key] = field ? (d[field] || (Array.isArray(STATE[key])?[]:({}))) : d;
+      onDataUpdate(key);
+    });
+    unsubscribers.push(unsub);
+  };
+
+  unsubscribers.push(onSnapshot(CONFIG_DOC(),   snap=>{ if(snap.exists()) STATE.config=snap.data(); }));
+  unsubscribers.push(onSnapshot(POOLS_DOC(),    snap=>{ if(snap.exists()){ STATE.pools=snap.data().data||[]; onDataUpdate('pools'); }}));
+  unsubscribers.push(onSnapshot(GAMES_DOC(),    snap=>{ if(snap.exists()){ STATE.games=snap.data().data||[]; onDataUpdate('games'); }}));
+  unsubscribers.push(onSnapshot(BRACKETS_DOC(), snap=>{ if(snap.exists()){ STATE.brackets=snap.data().data||[]; onDataUpdate('brackets'); }}));
+  unsubscribers.push(onSnapshot(REPORTS_DOC(),  snap=>{ if(snap.exists()){ STATE.reports=snap.data().data||{}; onDataUpdate('reports'); }}));
+  unsubscribers.push(onSnapshot(SPIRIT_DOC(),   snap=>{ if(snap.exists()){ STATE.spirit=snap.data().data||{}; onDataUpdate('spirit'); }}));
+}
+
+function onDataUpdate(key) {
+  // Re-render whichever view is active
+  renderTeamSelector();
+  if (currentTeamId) refreshTeamHome();
+  if (document.getElementById('screen-admin').classList.contains('active')) {
+    const active = document.querySelector('#screen-admin .admin-panel:not([style*="display: none"])');
+    if (active?.id === 'ap-games') renderAdminGames();
+    if (active?.id === 'ap-bracket') renderBracketsEditor();
+    if (active?.id === 'ap-spirit') renderAdminSpirit();
+  }
+}
+
+function hideLoading() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ── Save helpers ──────────────────────────────────────────────
+async function savePools()    { await fsSet(POOLS_DOC(),    { data: STATE.pools }); }
+async function saveGames()    { await fsSet(GAMES_DOC(),    { data: STATE.games }); }
+async function saveBrackets() { await fsSet(BRACKETS_DOC(), { data: STATE.brackets }); }
+async function saveReports()  { await fsSet(REPORTS_DOC(),  { data: STATE.reports }); }
+async function saveSpirit()   { await fsSet(SPIRIT_DOC(),   { data: STATE.spirit }); }
+async function saveConfig()   { await fsSet(CONFIG_DOC(),   STATE.config); }
+
+// ── Team helpers ──────────────────────────────────────────────
+function allTeams() {
+  return STATE.pools.flatMap(p => p.teams.map(t => ({ ...t, poolId: p.id, poolName: p.name })));
+}
+function findTeam(id) { return allTeams().find(t => t.id === id) || null; }
+
+// ── GAME_DEFS ─────────────────────────────────────────────────
+const GAME_DEFS = [
+  {key:'qf1',label:'QF: Seed 1 vs Seed 8',phase:'qf',seedH:1,seedA:8,cat:'champ'},
+  {key:'qf2',label:'QF: Seed 4 vs Seed 5',phase:'qf',seedH:4,seedA:5,cat:'champ'},
+  {key:'qf3',label:'QF: Seed 2 vs Seed 7',phase:'qf',seedH:2,seedA:7,cat:'champ'},
+  {key:'qf4',label:'QF: Seed 3 vs Seed 6',phase:'qf',seedH:3,seedA:6,cat:'champ'},
+  {key:'sf1',label:'Championship SF 1',phase:'sf',fromW:['qf1','qf2'],cat:'champ'},
+  {key:'sf2',label:'Championship SF 2',phase:'sf',fromW:['qf3','qf4'],cat:'champ'},
+  {key:'csf1',label:'Consolation SF 1',phase:'sf',fromL:['qf1','qf2'],cat:'consol'},
+  {key:'csf2',label:'Consolation SF 2',phase:'sf',fromL:['qf3','qf4'],cat:'consol'},
+  {key:'f1',label:'1st place final',phase:'final',fromW:['sf1','sf2'],cat:'place',place:'1st/2nd'},
+  {key:'f3',label:'3rd place final',phase:'final',fromL:['sf1','sf2'],cat:'place',place:'3rd/4th'},
+  {key:'f5',label:'5th place final',phase:'final',fromW:['csf1','csf2'],cat:'place',place:'5th/6th'},
+  {key:'f7',label:'7th place final',phase:'final',fromL:['csf1','csf2'],cat:'place',place:'7th/8th'},
+];
+const QF_SEED_MAP = {'1-8':'qf1','8-1':'qf1','4-5':'qf2','5-4':'qf2','2-7':'qf3','7-2':'qf3','3-6':'qf4','6-3':'qf4'};
+const GAME_NAME_MAP = {SF1:'sf1',SF2:'sf2',CSF1:'csf1',CSF2:'csf2',F1:'f1',F3:'f3',F5:'f5',F7:'f7'};
+const WFDF_CATS = [
+  {key:'rules',label:'Knowledge & use of rules'},
+  {key:'contact',label:'Contact'},
+  {key:'fair',label:'Fair-mindedness'},
+  {key:'attitude',label:'Attitude & self-control'},
+  {key:'communication',label:'Communication'}
+];
+const NUM_FIELDS = 8;
+
+// ── Bracket resolution ────────────────────────────────────────
+function resolveGame(bracket, defKey) {
+  const def = GAME_DEFS.find(d => d.key === defKey);
+  if (!def) return { homeId:null, awayId:null, homeIsBye:false, awayIsBye:false };
+  const g = bracket.games?.[defKey] || {};
+  if (g.manualHomeId !== undefined || g.manualAwayId !== undefined)
+    return { homeId: g.manualHomeId||null, awayId: g.manualAwayId||null, homeIsBye:false, awayIsBye:false };
+  if (def.phase === 'qf') {
+    const hRaw = bracket.seeds?.[def.seedH], aRaw = bracket.seeds?.[def.seedA];
+    return { homeId: hRaw||null, awayId: aRaw||null, homeIsBye: hRaw!==undefined&&hRaw===null, awayIsBye: aRaw!==undefined&&aRaw===null };
+  }
+  if (def.fromW) { const[sA,sB]=def.fromW; return { homeId:resolveAdvance(bracket,sA,'winner'), awayId:resolveAdvance(bracket,sB,'winner'), homeIsBye:false, awayIsBye:false }; }
+  if (def.fromL) { const[sA,sB]=def.fromL; return { homeId:resolveAdvance(bracket,sA,'loser'),  awayId:resolveAdvance(bracket,sB,'loser'),  homeIsBye:false, awayIsBye:false }; }
+  return { homeId:null, awayId:null, homeIsBye:false, awayIsBye:false };
+}
+function resolveAdvance(bracket, srcKey, side) {
+  const { homeId, awayId, homeIsBye, awayIsBye } = resolveGame(bracket, srcKey);
+  if (homeIsBye && !awayIsBye) return side==='winner' ? awayId : null;
+  if (awayIsBye && !homeIsBye) return side==='winner' ? homeId : null;
+  if (homeIsBye && awayIsBye) return null;
+  const sc = confirmedScore(bracketGameId(bracket.id, srcKey)); if (!sc) return null;
+  const hw = sc.homeScore > sc.awayScore;
+  return side==='winner' ? (hw?homeId:awayId) : (hw?awayId:homeId);
+}
+function bracketGameId(bid, defKey) { return bid+'__'+defKey; }
+
+// ── Game status ───────────────────────────────────────────────
+function gameStatus(gid) {
+  const hr = STATE.reports[gid+'-home'], ar = STATE.reports[gid+'-away'];
+  if (!hr && !ar) return 'unplayed';
+  if (hr && ar) return (hr.homeScore===ar.homeScore && hr.awayScore===ar.awayScore) ? 'confirmed' : 'conflict';
+  return 'unverified';
+}
+function confirmedScore(gid) {
+  const hr = STATE.reports[gid+'-home'], ar = STATE.reports[gid+'-away'];
+  if (hr && ar && hr.homeScore===ar.homeScore && hr.awayScore===ar.awayScore) return { homeScore:hr.homeScore, awayScore:hr.awayScore };
+  return null;
+}
+function myPov(g, hs, as2) { return g.homeId===currentTeamId ? {myScore:hs,oppScore:as2} : {myScore:as2,oppScore:hs}; }
+function toHA(g, my, op)   { return g.homeId===currentTeamId ? {homeScore:my,awayScore:op} : {homeScore:op,awayScore:my}; }
+function myRep(g)  { return STATE.reports[g.id+'-'+(g.homeId===currentTeamId?'home':'away')] || null; }
+function oppRep(g) { return STATE.reports[g.id+'-'+(g.homeId===currentTeamId?'away':'home')] || null; }
+
+// ── Screen management ─────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+window.showScreen = showScreen;
+
+window.goAdmin = () => showScreen('screen-admin-login');
+window.checkAdmin = () => {
+  if (document.getElementById('admin-pw-input').value === STATE.config.adminPw) {
+    document.getElementById('admin-pw-input').value = '';
+    document.getElementById('admin-login-err').style.display = 'none';
+    initAdminSheet(); showScreen('screen-admin');
+  } else document.getElementById('admin-login-err').style.display = 'block';
+};
+
+window.adminTab = (btn, pid) => {
+  document.querySelectorAll('#screen-admin .tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.admin-panel').forEach(p=>p.style.display='none');
+  document.getElementById(pid).style.display='block';
+  if (pid==='ap-sheet')   { initAdminSheet(); renderPoolsEditor(); }
+  if (pid==='ap-games')   renderAdminGames();
+  if (pid==='ap-bracket') renderBracketsEditor();
+  if (pid==='ap-spirit')  renderAdminSpirit();
+};
+
+// ── Sheet sync ────────────────────────────────────────────────
+function initAdminSheet() {
+  document.getElementById('sheet-url-input').value = STATE.config.sheetUrl || '';
+  document.getElementById('last-sync-info').textContent = STATE.config.lastSync ? `Last synced: ${STATE.config.lastSync}` : 'Never synced';
+  if (STATE.config.sheetUrl) syncFromSheet();
+}
+
+window.saveSheetUrl = async () => {
+  STATE.config.sheetUrl = document.getElementById('sheet-url-input').value.trim();
+  await saveConfig();
+  showSyncStatus('URL saved.','info');
+};
+
+function sheetToCsvUrl(baseUrl, sheetName) {
+  const match = baseUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) return null;
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l=>l.trim());
+  if (!lines.length) return [];
+  const headers = parseCSVRow(lines[0]).map(h=>h.trim());
+  return lines.slice(1).map(line => {
+    const vals = parseCSVRow(line);
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = vals[i]!==undefined ? vals[i].trim() : ''; });
+    return obj;
+  }).filter(row => Object.values(row).some(v=>v));
+}
+
+function parseCSVRow(line) {
+  const result=[]; let cur=''; let inQ=false;
+  for (let i=0; i<line.length; i++) {
+    const c=line[i];
+    if (c==='"') { if (inQ&&line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+    else if (c===','&&!inQ) { result.push(cur); cur=''; }
+    else cur+=c;
+  }
+  result.push(cur); return result;
+}
+
+async function fetchSheet(baseUrl, sheetName) {
+  const url = sheetToCsvUrl(baseUrl, sheetName);
+  if (!url) throw new Error('Invalid sheet URL');
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch "${sheetName}": ${resp.status}`);
+  return parseCSV(await resp.text());
+}
+
+window.syncFromSheet = async () => {
+  const url = STATE.config.sheetUrl;
+  if (!url) { showSyncStatus('No sheet URL saved.','err'); return; }
+  const btn = document.getElementById('sync-btn');
+  btn.textContent = 'Syncing…'; btn.disabled = true;
+  showSyncStatus('Fetching from Google Sheets…','info');
+  try {
+    const [poolTeams, poolSchedule, bracketTeams, bracketSchedule] = await Promise.all([
+      fetchSheet(url,'Pool Play Teams'),
+      fetchSheet(url,'Pool Schedule'),
+      fetchSheet(url,'Bracket Play Teams'),
+      fetchSheet(url,'Bracket Schedule'),
+    ]);
+    applySheetData(poolTeams, poolSchedule, bracketTeams, bracketSchedule);
+    const now = new Date().toLocaleString();
+    STATE.config.lastSync = now;
+    await saveConfig();
+    document.getElementById('last-sync-info').textContent = `Last synced: ${now}`;
+    showSyncStatus(`✓ Sync complete at ${now}. ${allTeams().length} pool teams, ${STATE.brackets.length} bracket(s).`,'ok');
+    renderTeamSelector();
+    renderPoolsEditor();
+  } catch(e) {
+    showSyncStatus(`✗ Sync failed: ${e.message}. Check the sheet is published to web and tab names match exactly.`,'err');
+  } finally {
+    btn.textContent = '↻ Sync from sheet now'; btn.disabled = false;
+  }
+};
+
+function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData, bracketScheduleData) {
+  // Pools
+  const poolMap = {};
+  poolTeamsData.forEach(row => {
+    const pool = (row['Pool']||'').trim(), name = (row['Team Name']||'').trim();
+    if (!pool||!name) return;
+    if (!poolMap[pool]) poolMap[pool] = { id:'p_'+pool.replace(/\s+/g,'_').toLowerCase(), name:pool, teams:[] };
+    poolMap[pool].teams.push({ id:'t_'+pool.replace(/\s+/g,'_').toLowerCase()+'_'+name.replace(/\s+/g,'_').toLowerCase(), name, poolSeed: parseInt(row['Pool Seed'])||null });
+  });
+  const pools = Object.values(poolMap);
+
+  // Pool games
+  const fmap = {};
+  STATE.games.forEach(g => { if(g.field||g.date||g.time) fmap[g.homeId+'-'+g.awayId]={field:g.field,date:g.date,time:g.time}; });
+  let gn=1; const newGames=[];
+  pools.forEach(pool => {
+    const ts = pool.teams;
+    for (let i=0;i<ts.length;i++) for (let j=i+1;j<ts.length;j++) {
+      const m = fmap[ts[i].id+'-'+ts[j].id]||fmap[ts[j].id+'-'+ts[i].id]||{};
+      newGames.push({ id:'pg'+gn++, poolId:pool.id, homeId:ts[i].id, awayId:ts[j].id, field:m.field||null, date:m.date||'', time:m.time||'' });
+    }
+  });
+  poolScheduleData.forEach(row => {
+    const hN=(row['Home Team']||'').trim(), aN=(row['Away Team']||'').trim();
+    if (!hN||!aN) return;
+    const hT=pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===hN.toLowerCase());
+    const aT=pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===aN.toLowerCase());
+    if (!hT||!aT) return;
+    const g=newGames.find(x=>(x.homeId===hT.id&&x.awayId===aT.id)||(x.homeId===aT.id&&x.awayId===hT.id));
+    if (g) { g.field=row['Field']?parseInt(row['Field'])||null:null; g.date=(row['Date']||'').trim(); g.time=(row['Time']||'').trim(); }
+  });
+
+  // Brackets
+  const bracketMap = {};
+  bracketTeamsData.forEach(row => {
+    const bName=(row['Bracket']||'').trim(), seed=parseInt(row['Seed']), tName=(row['Team Name']||'').trim();
+    if (!bName||!seed||seed<1||seed>8) return;
+    if (!bracketMap[bName]) { bracketMap[bName]={ id:'br_'+bName.replace(/\s+/g,'_').toLowerCase(), name:bName, seeds:{}, games:{} }; GAME_DEFS.forEach(d=>{ bracketMap[bName].games[d.key]={field:null,date:'',time:'',manualHomeId:undefined,manualAwayId:undefined}; }); }
+    const poolTeam = pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===tName.toLowerCase());
+    bracketMap[bName].seeds[seed] = poolTeam ? poolTeam.id : (tName||null);
+  });
+  STATE.brackets.forEach(eb => {
+    const nb = bracketMap[eb.name]; if (!nb) return;
+    GAME_DEFS.forEach(d => { const eg=eb.games?.[d.key]; if(!eg) return; if(!nb.games[d.key]) nb.games[d.key]={}; if(eg.field)nb.games[d.key].field=eg.field; if(eg.date)nb.games[d.key].date=eg.date; if(eg.time)nb.games[d.key].time=eg.time; });
+  });
+  bracketScheduleData.forEach(row => {
+    const bName=(row['Bracket']||'').trim(); if(!bName||!bracketMap[bName]) return;
+    const br=bracketMap[bName], hS=parseInt(row['Home Seed']), aS=parseInt(row['Away Seed']), gameName=(row['Game']||'').trim().toUpperCase();
+    const field=row['Field']?parseInt(row['Field'])||null:null, date=(row['Date']||'').trim(), time=(row['Time']||'').trim();
+    let defKey=null;
+    if (hS&&aS) defKey=QF_SEED_MAP[hS+'-'+aS];
+    else if (gameName) defKey=GAME_NAME_MAP[gameName];
+    if (!defKey) return;
+    if (!br.games[defKey]) br.games[defKey]={};
+    if (field!==null) br.games[defKey].field=field;
+    if (date) br.games[defKey].date=date;
+    if (time) br.games[defKey].time=time;
+  });
+
+  STATE.pools   = pools;
+  STATE.games   = newGames;
+  STATE.brackets = Object.values(bracketMap);
+  savePools(); saveGames(); saveBrackets();
+}
+
+function showSyncStatus(msg,type) {
+  const el=document.getElementById('sync-status');
+  el.textContent=msg; el.style.display='block';
+  el.className='sync-status '+(type==='ok'?'sync-ok':type==='err'?'sync-err':'sync-info');
+}
+
+// ── Manual pool editor ────────────────────────────────────────
+window.addPool = () => { editPools.push({id:'p'+Date.now(),name:'New Pool',teams:[]}); renderPoolsUI(); };
+window.removePool = pi => { if(!confirm('Remove pool?'))return; editPools.splice(pi,1); renderPoolsUI(); };
+window.addTeam = pi => { editPools[pi].teams.push({id:'t'+Date.now(),name:''}); renderPoolsUI(); };
+window.removeTeam = (pi,ti) => { editPools[pi].teams.splice(ti,1); renderPoolsUI(); };
+
+function renderPoolsEditor() {
+  editPools = JSON.parse(JSON.stringify(STATE.pools));
+  renderPoolsUI();
+}
+function renderPoolsUI() {
+  const el=document.getElementById('pools-editor'); if(!el) return;
+  el.innerHTML=editPools.map((pool,pi)=>`
+    <div class="pool-block">
+      <div class="pool-header">
+        <input type="text" value="${esc(pool.name)}" style="font-weight:500;font-size:15px;flex:1;border:none;border-bottom:0.5px solid var(--color-border-secondary);border-radius:0;padding:4px 0;background:transparent" oninput="editPools[${pi}].name=this.value"/>
+        <button class="btn btn-sm btn-danger" onclick="removePool(${pi})">Remove</button>
+      </div>
+      <div>${pool.teams.map((t,ti)=>`<div class="team-chip"><input type="text" value="${esc(t.name)}" placeholder="Team name" oninput="editPools[${pi}].teams[${ti}].name=this.value"/><button class="btn btn-sm btn-danger" style="padding:2px 8px" onclick="removeTeam(${pi},${ti})">&#x2715;</button></div>`).join('')}</div>
+      <button class="btn btn-sm" onclick="addTeam(${pi})" style="margin-top:4px">+ Add team</button>
+    </div>`).join('');
+}
+
+window.savePoolsManual = async () => {
+  const cleaned = editPools.map(p=>({...p,teams:p.teams.filter(t=>t.name.trim())}));
+  const fmap={}; STATE.games.forEach(g=>{if(g.field||g.date||g.time)fmap[g.homeId+'-'+g.awayId]={field:g.field,date:g.date,time:g.time};});
+  let n=1; const ng=[];
+  cleaned.forEach(pool=>{ const ts=pool.teams; for(let i=0;i<ts.length;i++) for(let j=i+1;j<ts.length;j++){ const m=fmap[ts[i].id+'-'+ts[j].id]||fmap[ts[j].id+'-'+ts[i].id]||{}; ng.push({id:'pg'+n++,poolId:pool.id,homeId:ts[i].id,awayId:ts[j].id,field:m.field||null,date:m.date||'',time:m.time||''}); } });
+  STATE.pools=cleaned; STATE.games=ng;
+  await savePools(); await saveGames();
+  renderTeamSelector(); alert('Saved!');
+};
+
+// ── Admin: Pool Games ─────────────────────────────────────────
+function renderAdminGames() {
+  const fOpts='<option value="">—</option>'+Array.from({length:NUM_FIELDS},(_,i)=>`<option value="${i+1}">Field ${i+1}</option>`).join('');
+  let html='';
+  STATE.pools.forEach(pool=>{
+    const pg=STATE.games.filter(g=>g.poolId===pool.id); if(!pg.length) return;
+    html+=`<div class="section-label">${esc(pool.name)}</div>`;
+    html+=pg.map(g=>{
+      const st=gameStatus(g.id), hN=findTeam(g.homeId)?.name||'?', aN=findTeam(g.awayId)?.name||'?';
+      const hr=STATE.reports[g.id+'-home'], ar=STATE.reports[g.id+'-away'];
+      let sh='<span style="color:var(--color-text-secondary)">Not played</span>';
+      if(st==='confirmed') sh=`<strong>${hr.homeScore}–${hr.awayScore}</strong>`;
+      else if(st==='unverified'){const r2=hr||ar;sh=`<span style="color:#633806">${r2.homeScore}–${r2.awayScore} <span class="pill pill-amber" style="font-size:11px">1 report</span></span>`;}
+      else if(st==='conflict') sh=`<span class="pill pill-red" style="font-size:11px">Conflict</span><div style="font-size:12px;color:#791F1F;margin-top:2px">${esc(hN)}: ${hr.homeScore}–${hr.awayScore} / ${esc(aN)}: ${ar.homeScore}–${ar.awayScore}</div>`;
+      const so=fOpts.replace(`value="${g.field||''}"`,`value="${g.field||''}" selected`);
+      return`<div class="match-row" style="flex-wrap:wrap;gap:6px">
+        <div style="flex:1;min-width:150px"><div style="font-size:12px;color:var(--color-text-secondary)">${esc(pool.name)}</div><div>${esc(hN)} vs ${esc(aN)}</div><div style="margin-top:3px">${sh}</div></div>
+        <div style="flex-shrink:0;width:100%">
+          <div class="admin-game-meta">
+            <div><label style="font-size:11px">Field</label><select style="font-size:13px;padding:5px 8px" onchange="setPoolGameField('${g.id}',this.value)">${so}</select></div>
+            <div><label style="font-size:11px">Date</label><input type="text" value="${esc(g.date||'')}" placeholder="e.g. Sat Aug 30" style="font-size:13px;padding:5px 8px" onchange="setPoolGameMeta('${g.id}','date',this.value)"/></div>
+            <div><label style="font-size:11px">Time</label><input type="text" value="${esc(g.time||'')}" placeholder="e.g. 9:00am" style="font-size:13px;padding:5px 8px" onchange="setPoolGameMeta('${g.id}','time',this.value)"/></div>
+          </div>
+          ${st!=='unplayed'?`<div style="margin-top:6px"><button class="btn btn-sm btn-danger" onclick="resetPoolGame('${g.id}')">Reset score</button></div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  });
+  document.getElementById('admin-games-list').innerHTML=html||'<div class="empty">No pool games yet.</div>';
+}
+
+window.setPoolGameField = async (gid,val) => { const g=STATE.games.find(x=>x.id===gid); if(g){g.field=val?parseInt(val):null; await saveGames();} };
+window.setPoolGameMeta  = async (gid,key,val) => { const g=STATE.games.find(x=>x.id===gid); if(g){g[key]=val; await saveGames();} };
+window.resetPoolGame    = async (gid) => {
+  if(!confirm('Reset?'))return;
+  delete STATE.reports[gid+'-home']; delete STATE.reports[gid+'-away'];
+  delete STATE.spirit[gid+'-home'];  delete STATE.spirit[gid+'-away'];
+  await saveReports(); await saveSpirit(); renderAdminGames();
+};
+
+// ── Admin: Brackets ───────────────────────────────────────────
+function makeBracket(id,name) {
+  const games={}; GAME_DEFS.forEach(d=>{games[d.key]={field:null,date:'',time:'',manualHomeId:undefined,manualAwayId:undefined};});
+  return{id,name,seeds:{},games};
+}
+window.addBracket = async () => { STATE.brackets.push(makeBracket('br'+Date.now(),'New Bracket')); await saveBrackets(); renderBracketsEditor(); };
+window.removeBracket = async (bid) => { if(!confirm('Remove bracket?'))return; STATE.brackets=STATE.brackets.filter(x=>x.id!==bid); await saveBrackets(); renderBracketsEditor(); };
+window.addBracketSeed    = async (bid,seed) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){if(!br.seeds)br.seeds={};br.seeds[seed]=null;} await saveBrackets(); renderBracketsEditor(); };
+window.removeBracketSeed = async (bid,seed) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){delete br.seeds[seed];} await saveBrackets(); renderBracketsEditor(); };
+window.setBracketSeed    = async (bid,seed,val) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){if(!br.seeds)br.seeds={};br.seeds[seed]=val||null;} await saveBrackets(); renderBracketsEditor(); };
+window.updateBracketName = async (bid,val) => { const br=STATE.brackets.find(x=>x.id===bid); if(br)br.name=val; await saveBrackets(); };
+window.setBracketGameField= async (bid,dk,val) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){if(!br.games[dk])br.games[dk]={};br.games[dk].field=val?parseInt(val):null;} await saveBrackets(); };
+window.setBracketGameMeta = async (bid,dk,key,val) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){if(!br.games[dk])br.games[dk]={};br.games[dk][key]=val;} await saveBrackets(); };
+window.overrideBracketTeam= async (bid,dk,side,val) => { const br=STATE.brackets.find(x=>x.id===bid); if(br){if(!br.games[dk])br.games[dk]={};br.games[dk][side==='home'?'manualHomeId':'manualAwayId']=val||null;} await saveBrackets(); renderBracketsEditor(); };
+window.resetBracketGame   = async (bid,dk) => {
+  if(!confirm('Reset score?'))return;
+  const gid=bracketGameId(bid,dk);
+  delete STATE.reports[gid+'-home']; delete STATE.reports[gid+'-away'];
+  delete STATE.spirit[gid+'-home'];  delete STATE.spirit[gid+'-away'];
+  await saveReports(); await saveSpirit(); renderBracketsEditor();
+};
+
+function renderBracketsEditor() {
+  const teams=allTeams();
+  const teamOpts='<option value="">— Bye —</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.poolName)})</option>`).join('');
+  const fOpts='<option value="">—</option>'+Array.from({length:NUM_FIELDS},(_,i)=>`<option value="${i+1}">Field ${i+1}</option>`).join('');
+  if(!STATE.brackets.length){document.getElementById('brackets-editor').innerHTML='<div class="empty" style="padding:1rem 0">No brackets. Sync from sheet or add manually.</div>';return;}
+  document.getElementById('brackets-editor').innerHTML=STATE.brackets.map(bracket=>{
+    let seedsHtml='';
+    for(let s=1;s<=8;s++){
+      const tid=bracket.seeds?.[s],assigned=tid!==undefined;
+      const opts=teamOpts.replace(`value="${tid||''}"`,`value="${tid||''}" selected`);
+      seedsHtml+=`<div style="display:grid;grid-template-columns:70px 1fr auto;gap:6px;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:500">Seed ${s}</span>
+        ${assigned?`<select style="font-size:13px" onchange="setBracketSeed('${bracket.id}',${s},this.value)">${opts}</select><button class="btn btn-sm btn-danger" style="padding:2px 8px" onclick="removeBracketSeed('${bracket.id}',${s})">&#x2715;</button>`
+          :`<span style="font-size:13px;color:var(--color-text-secondary)">Not assigned</span><button class="btn btn-sm" onclick="addBracketSeed('${bracket.id}',${s})">Assign</button>`}
+      </div>`;
+    }
+    const renderAdminGame=(dk,cls)=>{
+      const def=GAME_DEFS.find(d=>d.key===dk);
+      const{homeId,awayId,homeIsBye,awayIsBye}=resolveGame(bracket,dk);
+      const gid=bracketGameId(bracket.id,dk);
+      const g=bracket.games?.[dk]||{};
+      const st=(homeIsBye||awayIsBye)?'bye':gameStatus(gid);
+      const sc=st==='confirmed'?confirmedScore(gid):null;
+      const fo=fOpts.replace(`value="${g.field||''}"`,`value="${g.field||''}" selected`);
+      const hr=STATE.reports[gid+'-home'],ar=STATE.reports[gid+'-away'];
+      let sh='';
+      if(st==='confirmed')sh=`<span style="font-weight:500">${sc.homeScore}–${sc.awayScore}</span>`;
+      else if(st==='unverified'){const r2=hr||ar;sh=`<span style="color:#633806">${r2.homeScore}–${r2.awayScore} <span class="pill pill-amber" style="font-size:11px">1</span></span>`;}
+      else if(st==='conflict')sh=`<span class="pill pill-red" style="font-size:11px">Conflict</span>`;
+      const hOpts=teamOpts.replace(`value="${g.manualHomeId||homeId||''}"`,`value="${g.manualHomeId||homeId||''}" selected`);
+      const aOpts=teamOpts.replace(`value="${g.manualAwayId||awayId||''}"`,`value="${g.manualAwayId||awayId||''}" selected`);
+      return`<div class="bg-card ${cls}" style="margin-bottom:6px">
+        <div class="bg-header"><span>${def.label}${def.place?` <span class="place-pill">${def.place}</span>`:''}</span>${st!=='unplayed'&&st!=='bye'?`<button class="btn btn-sm btn-danger" style="padding:2px 6px;font-size:11px" onclick="resetBracketGame('${bracket.id}','${dk}')">Reset</button>`:''}</div>
+        <div style="padding:8px 10px">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;font-size:12px;margin-bottom:4px"><span style="color:var(--color-text-secondary);width:40px">Home</span><select style="font-size:12px;padding:4px 6px" onchange="overrideBracketTeam('${bracket.id}','${dk}','home',this.value)">${hOpts}</select></div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;font-size:12px;margin-bottom:8px"><span style="color:var(--color-text-secondary);width:40px">Away</span><select style="font-size:12px;padding:4px 6px" onchange="overrideBracketTeam('${bracket.id}','${dk}','away',this.value)">${aOpts}</select></div>
+          <div class="admin-game-meta">
+            <div><label style="font-size:11px">Field</label><select style="font-size:13px;padding:5px 8px" onchange="setBracketGameField('${bracket.id}','${dk}',this.value)">${fo}</select></div>
+            <div><label style="font-size:11px">Date</label><input type="text" value="${esc(g.date||'')}" placeholder="e.g. Sat Aug 30" style="font-size:13px;padding:5px 8px" onchange="setBracketGameMeta('${bracket.id}','${dk}','date',this.value)"/></div>
+            <div><label style="font-size:11px">Time</label><input type="text" value="${esc(g.time||'')}" placeholder="e.g. 2:00pm" style="font-size:13px;padding:5px 8px" onchange="setBracketGameMeta('${bracket.id}','${dk}','time',this.value)"/></div>
+          </div>
+          ${sh?`<div style="margin-top:6px;font-size:12px">${sh}</div>`:''}
+        </div>
+      </div>`;
+    };
+    return`<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="text" value="${esc(bracket.name)}" style="font-weight:500;font-size:16px;flex:1;border:none;border-bottom:0.5px solid var(--color-border-secondary);border-radius:0;padding:4px 0;background:transparent" oninput="updateBracketName('${bracket.id}',this.value)"/>
+        <button class="btn btn-sm btn-danger" onclick="removeBracket('${bracket.id}')">Remove</button>
+      </div>
+      <div class="section-label">Seedings</div>${seedsHtml}
+      <div class="section-label" style="color:#0F6E56;margin-top:1rem">Quarter-finals</div>${['qf1','qf2','qf3','qf4'].map(k=>renderAdminGame(k,'champ')).join('')}
+      <div class="section-label" style="color:#0F6E56">Championship semi-finals</div>${['sf1','sf2'].map(k=>renderAdminGame(k,'champ')).join('')}
+      <div class="section-label" style="color:#534AB7">Consolation semi-finals</div>${['csf1','csf2'].map(k=>renderAdminGame(k,'consol')).join('')}
+      <div class="section-label" style="color:#854F0B">Finals & placement</div>${['f1','f3','f5','f7'].map(k=>renderAdminGame(k,'place')).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── Admin: Spirit ─────────────────────────────────────────────
+function renderAdminSpirit() {
+  const entries=Object.entries(STATE.spirit);
+  const el=document.getElementById('admin-spirit-list');
+  if(!entries.length){el.innerHTML='<div class="empty">No spirit submissions yet</div>';return;}
+  el.innerHTML=entries.map(([k,s])=>{
+    const total=WFDF_CATS.reduce((sum,c)=>sum+(s.scores[c.key]||0),0);
+    return`<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div><strong>${esc(findTeam(s.raterId)?.name||'?')}</strong><span style="color:var(--color-text-secondary);font-size:12px"> rated </span><strong>${esc(findTeam(s.ratedId)?.name||'?')}</strong></div><span class="pill pill-blue">${total}/20</span></div>
+      ${WFDF_CATS.map(c=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--color-text-secondary)"><span>${c.label}</span><span style="font-weight:500;color:var(--color-text-primary)">${s.scores[c.key]??'—'}</span></div>`).join('')}
+      ${s.spiritPlayer?`<div style="margin-top:6px;font-size:12px;padding:6px 10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)"><span style="color:var(--color-text-secondary)">Spirit player: </span><strong>${esc(s.spiritPlayer)}</strong></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Settings ──────────────────────────────────────────────────
+window.changeAdminPw = async () => {
+  const v=document.getElementById('new-admin-pw').value.trim(); if(!v)return;
+  STATE.config.adminPw=v; await saveConfig();
+  document.getElementById('new-admin-pw').value='';
+  const m=document.getElementById('pw-changed-msg'); m.style.display='block'; setTimeout(()=>m.style.display='none',2500);
+};
+window.resetScores = async () => {
+  if(!confirm('Reset all scores and spirit?'))return;
+  STATE.reports={}; STATE.spirit={};
+  await saveReports(); await saveSpirit(); alert('Done.');
+};
+window.fullReset = async () => {
+  if(!confirm('Full reset — wipes everything?'))return;
+  STATE.pools=[]; STATE.games=[]; STATE.brackets=[]; STATE.reports={}; STATE.spirit={};
+  await savePools(); await saveGames(); await saveBrackets(); await saveReports(); await saveSpirit();
+  renderTeamSelector(); renderPoolsEditor(); alert('Done.');
+};
+
+// ── Team selector ─────────────────────────────────────────────
+function renderTeamSelector() {
+  const root=document.getElementById('team-selector-root');
+  if(!STATE.pools.length||STATE.pools.every(p=>!p.teams.length)){root.innerHTML='<div class="empty">No teams yet. Admin → Sheet Sync to import.</div>';return;}
+  root.innerHTML=STATE.pools.filter(p=>p.teams.length).map(pool=>`
+    <div class="section-label">${esc(pool.name)}</div>
+    <div class="team-selector-grid">${pool.teams.map(t=>`<button class="team-btn" onclick="selectTeam('${t.id}')">${esc(t.name)}<br><span style="font-size:11px;color:var(--color-text-secondary)">${esc(pool.name)}</span></button>`).join('')}</div>
+  `).join('');
+}
+
+// ── Team home ─────────────────────────────────────────────────
+window.selectTeam = (tid) => {
+  currentTeamId=tid; const team=findTeam(tid); if(!team)return;
+  document.getElementById('team-home-name').textContent=team.name;
+  document.getElementById('team-home-division').innerHTML=`<span class="pill pill-blue">${esc(team.poolName)}</span>`;
+  refreshTeamHome();
+  document.querySelectorAll('#screen-team-home .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  ['th-schedule','th-standings','th-bracket','th-spirit'].forEach((id,i)=>document.getElementById(id).style.display=i===0?'block':'none');
+  showScreen('screen-team-home');
+};
+
+function refreshTeamHome(){renderAllGames();renderAllStandings();renderPublicBrackets();renderSpiritLeaderboard();}
+
+window.teamTab = (btn,pid) => {
+  document.querySelectorAll('#screen-team-home .tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  ['th-schedule','th-standings','th-bracket','th-spirit'].forEach(id=>document.getElementById(id).style.display=id===pid?'block':'none');
+};
+
+function metaBadges(field,date,time){
+  let html='';
+  if(date||time)html+=`<span class="time-badge">${[date,time].filter(Boolean).join(' · ')}</span>`;
+  if(field)html+=`<span class="field-badge">Field ${field}</span>`;
+  return html;
+}
+
+function getAllBracketGameObjects(){
+  const out=[];
+  STATE.brackets.forEach(bracket=>{
+    GAME_DEFS.forEach(def=>{
+      const{homeId,awayId,homeIsBye,awayIsBye}=resolveGame(bracket,def.key);
+      const gid=bracketGameId(bracket.id,def.key);
+      const g=bracket.games?.[def.key]||{};
+      out.push({id:gid,homeId,awayId,homeIsBye,awayIsBye,label:def.label,place:def.place,field:g.field,date:g.date||'',time:g.time||'',bracketName:bracket.name,cat:def.cat});
+    });
+  });
+  return out;
+}
+
+function getGameById(id){
+  const pg=STATE.games.find(g=>g.id===id); if(pg)return pg;
+  return getAllBracketGameObjects().find(g=>g.id===id)||null;
+}
+
+// ── All games ─────────────────────────────────────────────────
+function renderAllGames(){
+  let html='';
+  STATE.pools.filter(p=>p.teams.length).forEach(pool=>{
+    const pg=STATE.games.filter(g=>g.poolId===pool.id); if(!pg.length)return;
+    html+=`<div class="card"><h3>${esc(pool.name)}</h3>${pg.map(g=>gameRowHtml(g)).join('')}</div>`;
+  });
+  const bgAll=getAllBracketGameObjects();
+  const byBracket={};
+  bgAll.forEach(g=>{if(!byBracket[g.bracketName])byBracket[g.bracketName]=[];byBracket[g.bracketName].push(g);});
+  Object.entries(byBracket).forEach(([name,gs])=>{
+    const vis=gs.filter(g=>g.homeId||g.awayId||g.homeIsBye||g.awayIsBye); if(!vis.length)return;
+    html+=`<div class="card"><h3>${esc(name)}</h3>${vis.map(g=>gameRowHtml(g)).join('')}</div>`;
+  });
+  document.getElementById('th-schedule').innerHTML=html||'<div class="empty">No games scheduled</div>';
+}
+
+function gameRowHtml(g){
+  const hN=g.homeIsBye?'Bye':g.homeId?findTeam(g.homeId)?.name||'?':'TBD';
+  const aN=g.awayIsBye?'Bye':g.awayId?findTeam(g.awayId)?.name||'?':'TBD';
+  const st=(g.homeIsBye||g.awayIsBye)?'bye':gameStatus(g.id);
+  const isMine=g.homeId===currentTeamId||g.awayId===currentTeamId;
+  const hr=STATE.reports[g.id+'-home'],ar=STATE.reports[g.id+'-away'];
+  const meta=metaBadges(g.field,g.date,g.time);
+  const pp=g.place?`<span class="place-pill" style="margin-left:4px">${g.place}</span>`:'';
+  let sc2='—',pill='',conflict='';
+  if(st==='bye'){sc2='';pill='<span class="pill pill-gray">Bye</span>';}
+  else if(st==='confirmed'){const sc=confirmedScore(g.id);sc2=`${sc.homeScore} – ${sc.awayScore}`;pill='<span class="pill pill-green">Final</span>';}
+  else if(st==='unverified'){const r2=hr||ar;sc2=`${r2.homeScore} – ${r2.awayScore}`;pill='<span class="pill pill-amber">Unverified</span>';}
+  else if(st==='conflict'){
+    pill='<span class="pill pill-red">Unverified</span>';
+    if(isMine){
+      const mr=myRep(g),or2=oppRep(g);
+      if(mr&&or2){
+        const mp=myPov(g,mr.homeScore,mr.awayScore),op=myPov(g,or2.homeScore,or2.awayScore);
+        conflict=`<div class="conflict-box"><div style="font-weight:500;margin-bottom:4px">Score mismatch</div>
+          <div class="conflict-scores"><div class="conflict-score-item"><span style="font-size:11px;opacity:.8">Your report</span><span style="font-weight:500">${mp.myScore}–${mp.oppScore}</span></div>
+          <div style="color:#F09595;padding-top:12px">vs</div><div class="conflict-score-item"><span style="font-size:11px;opacity:.8">Their report</span><span style="font-weight:500">${op.myScore}–${op.oppScore}</span></div></div>
+          <button class="btn btn-sm btn-danger" style="margin-top:8px" onclick="openCorrection('${g.id}')">Correct my score</button></div>`;
+      }else conflict=`<div class="conflict-box">Score dispute — contact organizer</div>`;
+    }else{
+      conflict=`<div class="conflict-box" style="font-size:12px"><div style="font-weight:500;margin-bottom:2px">Scores don't match</div><div>${esc(hN)}: ${hr?hr.homeScore+'–'+hr.awayScore:'—'}</div><div>${esc(aN)}: ${ar?ar.homeScore+'–'+ar.awayScore:'—'}</div></div>`;
+    }
+  }else pill='<span class="pill pill-gray">Upcoming</span>';
+  return`<div class="match-row" style="flex-wrap:wrap;${isMine?'background:var(--color-background-secondary);margin:0 -1.25rem;padding:8px 1.25rem;':''}">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:2px">${meta}${g.label||''}${pp}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span><strong>${esc(hN)}</strong> vs <strong>${esc(aN)}</strong>${isMine?'<span style="font-size:11px;color:var(--color-text-secondary);margin-left:6px">your game</span>':''}</span>
+        <div style="display:flex;align-items:center;gap:6px">${st!=='conflict'&&sc2?`<span style="font-weight:500;font-size:14px">${sc2}</span>`:''}${pill}</div></div>
+      ${conflict?`<div style="margin-top:6px;width:100%">${conflict}</div>`:''}
+    </div>
+  </div>`;
+}
+
+// ── Standings ─────────────────────────────────────────────────
+function renderAllStandings(){
+  let html='';
+  STATE.pools.filter(p=>p.teams.length).forEach(pool=>{
+    const rows=computeStandings(pool.teams,STATE.games,pool.id);
+    html+=`<div class="card"><h3>${esc(pool.name)}</h3>
+      <div class="standing-row header"><span>#</span><span>Team</span><span>W</span><span>L</span><span>PF</span><span>PA</span><span>+/-</span></div>
+      ${rows.map((r,i)=>`<div class="standing-row" style="${r.id===currentTeamId?'font-weight:500':''}"><span>${i+1}</span><span>${esc(r.name)}</span><span>${r.w}</span><span>${r.l}</span><span>${r.pf}</span><span>${r.pa}</span><span>${r.pd>=0?'+':''}${r.pd}</span></div>`).join('')}
+    </div>`;
+  });
+  html+=`<p style="font-size:12px;color:var(--color-text-secondary);margin-top:.5rem">Tiebreakers: 1) head to head &nbsp;2) point diff in common games &nbsp;3) overall point diff</p>`;
+  document.getElementById('th-standings').innerHTML=html||'<div class="empty">No pools set up</div>';
+}
+function computeStandings(teams,games,poolId){
+  const st={};teams.forEach(t=>{st[t.id]={w:0,l:0,pf:0,pa:0};});
+  games.filter(g=>g.poolId===poolId&&gameStatus(g.id)==='confirmed').forEach(g=>{
+    const sc=confirmedScore(g.id);if(!sc||!st[g.homeId]||!st[g.awayId])return;
+    st[g.homeId].pf+=sc.homeScore;st[g.homeId].pa+=sc.awayScore;
+    st[g.awayId].pf+=sc.awayScore;st[g.awayId].pa+=sc.homeScore;
+    if(sc.homeScore>sc.awayScore){st[g.homeId].w++;st[g.awayId].l++;}else{st[g.awayId].w++;st[g.homeId].l++;}
+  });
+  return sortTB(teams.map(t=>({...t,...st[t.id],pd:st[t.id].pf-st[t.id].pa})),games,poolId);
+}
+function sortTB(rows,games,poolId){
+  return rows.sort((a,b)=>{if(b.w!==a.w)return b.w-a.w;const h=h2h(a,b,games,poolId);if(h)return h;const c=cDiff(a,b,games,poolId);if(c)return c;return b.pd-a.pd;});
+}
+function h2h(a,b,games,poolId){
+  const g=games.find(x=>x.poolId===poolId&&gameStatus(x.id)==='confirmed'&&((x.homeId===a.id&&x.awayId===b.id)||(x.homeId===b.id&&x.awayId===a.id)));
+  if(!g)return 0;const sc=confirmedScore(g.id);if(!sc)return 0;
+  return(g.homeId===b.id?sc.homeScore:sc.awayScore)-(g.homeId===a.id?sc.homeScore:sc.awayScore);
+}
+function cDiff(a,b,games,poolId){
+  let ap=0,bp=0;
+  games.filter(g=>g.poolId===poolId&&gameStatus(g.id)==='confirmed').forEach(g=>{
+    const sc=confirmedScore(g.id);if(!sc)return;
+    const oA=g.homeId===a.id?g.awayId:g.awayId===a.id?g.homeId:null;
+    const oB=g.homeId===b.id?g.awayId:g.awayId===b.id?g.homeId:null;
+    if(oA===b.id)ap+=g.homeId===a.id?sc.homeScore-sc.awayScore:sc.awayScore-sc.homeScore;
+    if(oB===a.id)bp+=g.homeId===b.id?sc.homeScore-sc.awayScore:sc.awayScore-sc.homeScore;
+  });
+  return bp-ap;
+}
+
+// ── Public bracket ────────────────────────────────────────────
+function renderPublicBrackets(){
+  const hasAny=STATE.brackets.some(b=>Object.keys(b.seeds||{}).length>0);
+  if(!hasAny){document.getElementById('th-bracket').innerHTML='<div class="empty">Brackets not set up yet</div>';return;}
+  const renderPubGame=(bracket,dk,cls)=>{
+    const def=GAME_DEFS.find(d=>d.key===dk);
+    const{homeId,awayId,homeIsBye,awayIsBye}=resolveGame(bracket,dk);
+    const gid=bracketGameId(bracket.id,dk);
+    const g=bracket.games?.[dk]||{};
+    const st=(homeIsBye||awayIsBye)?'bye':gameStatus(gid);
+    const sc=st==='confirmed'?confirmedScore(gid):null;
+    const hN=homeIsBye?'Bye':homeId?findTeam(homeId)?.name||'?':'TBD';
+    const aN=awayIsBye?'Bye':awayId?findTeam(awayId)?.name||'?':'TBD';
+    const meta=metaBadges(g.field,g.date,g.time);
+    const hW=sc&&sc.homeScore>sc.awayScore,aW=sc&&sc.awayScore>sc.homeScore;
+    return`<div class="bg-card ${cls}">
+      <div class="bg-header"><span>${def.label}${def.place?` <span class="place-pill">${def.place}</span>`:''}</span><span style="font-size:10px">${meta}</span></div>
+      <div class="bg-team${hW?' winner':homeIsBye?' bye-team':''}">${esc(hN)}<span style="font-weight:500;margin-left:auto">${sc?sc.homeScore:''}</span></div>
+      <div class="bg-team${aW?' winner':awayIsBye?' bye-team':''}">${esc(aN)}<span style="font-weight:500;margin-left:auto">${sc?sc.awayScore:''}</span></div>
+    </div>`;
+  };
+  let html='';
+  STATE.brackets.forEach(bracket=>{
+    if(!Object.keys(bracket.seeds||{}).length)return;
+    html+=`<div class="card"><h3>${esc(bracket.name)}</h3>`;
+    html+=`<div class="section-label" style="color:#0F6E56">Quarter-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    html+=renderPubGame(bracket,'qf1','champ')+renderPubGame(bracket,'qf2','champ')+renderPubGame(bracket,'qf3','champ')+renderPubGame(bracket,'qf4','champ');
+    html+=`</div><div class="section-label" style="color:#0F6E56">Championship semi-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    html+=renderPubGame(bracket,'sf1','champ')+renderPubGame(bracket,'sf2','champ');
+    html+=`</div><div class="section-label" style="color:#534AB7">Consolation semi-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    html+=renderPubGame(bracket,'csf1','consol')+renderPubGame(bracket,'csf2','consol');
+    html+=`</div><div class="section-label" style="color:#854F0B">Finals & placement</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    html+=renderPubGame(bracket,'f1','place')+renderPubGame(bracket,'f3','place')+renderPubGame(bracket,'f5','place')+renderPubGame(bracket,'f7','place');
+    html+=`</div></div>`;
+  });
+  html+=`<p style="font-size:12px;color:var(--color-text-secondary);margin-top:4px">Teams advance automatically once both teams confirm a score.</p>`;
+  document.getElementById('th-bracket').innerHTML=html;
+}
+
+// ── Spirit leaderboard ────────────────────────────────────────
+function renderSpiritLeaderboard(){
+  const teams=allTeams();const rec={};
+  teams.forEach(t=>{rec[t.id]={total:0,count:0,noms:[]};});
+  Object.values(STATE.spirit).forEach(s=>{
+    if(!rec[s.ratedId])return;
+    const total=WFDF_CATS.reduce((sum,c)=>sum+(s.scores[c.key]||0),0);
+    rec[s.ratedId].total+=total;rec[s.ratedId].count++;
+    if(s.spiritPlayer)rec[s.ratedId].noms.push({player:s.spiritPlayer,from:s.raterId});
+  });
+  const rows=teams.map(t=>({...t,avg:rec[t.id].count?rec[t.id].total/rec[t.id].count:null,count:rec[t.id].count,noms:rec[t.id].noms})).sort((a,b)=>(b.avg??-1)-(a.avg??-1));
+  let html=`<div class="card"><h3>Spirit leaderboard</h3>
+    <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Average WFDF spirit score (out of 20), all teams.</p>
+    <div class="spirit-row header"><span>#</span><span>Team</span><span style="text-align:right">Avg</span><span style="text-align:right">Games</span></div>`;
+  rows.forEach((r,i)=>{
+    const avg=r.avg!==null?r.avg.toFixed(1):'—';
+    const bar=r.avg!==null?`<div style="height:3px;background:var(--color-border-tertiary);border-radius:2px;margin-top:3px"><div style="height:3px;background:#1D9E75;border-radius:2px;width:${Math.round(r.avg/20*100)}%"></div></div>`:'';
+    html+=`<div class="spirit-row" style="${r.id===currentTeamId?'font-weight:500':''}${i===0&&r.avg!==null?';color:#27500A':''}">
+      <span>${i+1}</span><div><span>${esc(r.name)}</span>${r.id===currentTeamId?'<span style="font-size:11px;color:var(--color-text-secondary);margin-left:4px">you</span>':''}<span style="font-size:11px;color:var(--color-text-secondary);margin-left:4px">(${esc(r.poolName)})</span>${bar}</div>
+      <span style="text-align:right;font-weight:500">${avg}</span><span style="text-align:right;color:var(--color-text-secondary)">${r.count}</span></div>`;
+  });
+  html+=`</div>`;
+  const myNoms=rec[currentTeamId]?.noms||[];
+  if(myNoms.length){
+    html+=`<div class="card"><h3>Spirit player nominations — your team</h3>`;
+    html+=myNoms.map(n=>`<div style="font-size:13px;padding:7px 10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-bottom:6px"><strong>${esc(n.player)}</strong><span style="font-size:12px;color:var(--color-text-secondary);margin-left:6px">by ${esc(findTeam(n.from)?.name||'?')}</span></div>`).join('');
+    html+=`</div>`;
+  }
+  document.getElementById('th-spirit').innerHTML=html;
+}
+
+// ── Report score ──────────────────────────────────────────────
+window.openCorrection = (gid) => { correctionGameId=gid; openReportScore(true,gid); };
+window.openReportScore = (isCorrection, prefillGameId) => {
+  correctionGameId = isCorrection ? prefillGameId : null;
+  document.getElementById('report-screen-title').textContent = isCorrection?'Correct your score':'Report game result';
+  document.getElementById('report-game-picker').style.display = isCorrection?'none':'block';
+  document.getElementById('correction-notice').style.display = 'none';
+  document.getElementById('report-form').style.display = 'none';
+  document.getElementById('report-alert').style.display = 'none';
+  spiritScores = {};
+  if (isCorrection) { const g=getGameById(prefillGameId); if(g)setupReportForm(g,true); showScreen('screen-report'); return; }
+  const eligible=[...STATE.games,...getAllBracketGameObjects()].filter(g=>{
+    if(g.homeIsBye||g.awayIsBye||!g.homeId||!g.awayId)return false;
+    if(g.homeId!==currentTeamId&&g.awayId!==currentTeamId)return false;
+    const sk=g.homeId===currentTeamId?'home':'away';return!STATE.reports[g.id+'-'+sk];
+  });
+  const sel=document.getElementById('game-select');
+  sel.innerHTML='<option value="">— choose —</option>'+eligible.map(g=>{
+    const opp=g.homeId===currentTeamId?findTeam(g.awayId)?.name||'?':findTeam(g.homeId)?.name||'?';
+    const parts=[g.date,g.time,g.field?`Field ${g.field}`:null].filter(Boolean).join(' · ');
+    const lbl=g.label||(g.poolId?STATE.pools.find(p=>p.id===g.poolId)?.name||'Pool':'Bracket');
+    return`<option value="${g.id}">vs ${esc(opp)} — ${esc(lbl)}${parts?' ('+esc(parts)+')':''}</option>`;
+  }).join('');
+  showScreen('screen-report');
+};
+
+window.onGameSelect = () => {
+  const gid=document.getElementById('game-select').value;
+  document.getElementById('report-form').style.display='none'; document.getElementById('correction-notice').style.display='none';
+  if(!gid)return; const g=getGameById(gid); if(g)setupReportForm(g,false);
+};
+
+function setupReportForm(g,isCorrection){
+  const myName=findTeam(currentTeamId)?.name||'My team';
+  const oppId=g.homeId===currentTeamId?g.awayId:g.homeId;
+  const oppName=findTeam(oppId)?.name||'Opponent';
+  document.getElementById('score-my-label').textContent=myName;
+  document.getElementById('score-opp-label').textContent=oppName;
+  document.getElementById('spirit-for-label').textContent='rating '+oppName;
+  document.getElementById('score-mine').value=''; document.getElementById('score-opp').value='';
+  document.getElementById('winner-display').textContent=''; document.getElementById('spirit-player').value='';
+  spiritScores={};
+  const sk=g.homeId===currentTeamId?'home':'away';
+  const es=STATE.spirit[g.id+'-'+sk];
+  if(isCorrection){
+    const mr=myRep(g),or2=oppRep(g);
+    if(mr){const p=myPov(g,mr.homeScore,mr.awayScore);document.getElementById('score-mine').value=p.myScore;document.getElementById('score-opp').value=p.oppScore;}
+    const notice=document.getElementById('correction-notice');
+    if(or2){const op=myPov(g,or2.homeScore,or2.awayScore);notice.innerHTML=`Correcting. Other team reported <strong>${op.myScore}–${op.oppScore}</strong>.`;}
+    else notice.innerHTML='Correcting your submission.';
+    notice.style.display='block';
+    if(es){spiritScores={...es.scores};document.getElementById('spirit-player').value=es.spiritPlayer||'';}
+    document.getElementById('spirit-section').style.display=es?'none':'block';
+    document.getElementById('nomination-section').style.display=es?'none':'block';
+    document.getElementById('report-submit-btn').textContent='Submit correction';
+  }else{
+    document.getElementById('spirit-section').style.display='block';
+    document.getElementById('nomination-section').style.display='block';
+    document.getElementById('report-submit-btn').textContent='Submit result';
+  }
+  renderWFDFCats();document.getElementById('report-form').style.display='block';
+}
+
+function renderWFDFCats(){
+  document.getElementById('wfdf-categories').innerHTML=WFDF_CATS.map(c=>`
+    <div class="wfdf-cat"><div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:2px">${c.label}</div>
+    <div class="wfdf-options">${[0,1,2,3,4].map(v=>`<button class="wfdf-opt${spiritScores[c.key]===v?' selected':''}" onclick="setSpirit('${c.key}',${v})">${v}</button>`).join('')}</div></div>`).join('');
+  document.getElementById('spirit-total-val').textContent=WFDF_CATS.reduce((s,c)=>s+(spiritScores[c.key]||0),0);
+}
+window.setSpirit = (key,val) => { spiritScores[key]=val; renderWFDFCats(); };
+
+window.updateReportUI = () => {
+  const mine=parseInt(document.getElementById('score-mine').value), opp=parseInt(document.getElementById('score-opp').value);
+  const gid=correctionGameId||document.getElementById('game-select').value; if(!gid)return;
+  const g=getGameById(gid); if(!g)return;
+  const d=document.getElementById('winner-display');
+  const myN=findTeam(currentTeamId)?.name||'Your team', opN=findTeam(g.homeId===currentTeamId?g.awayId:g.homeId)?.name||'Opponent';
+  if(!isNaN(mine)&&!isNaN(opp)&&mine!==opp)d.textContent=(mine>opp?myN:opN)+' wins'; else d.textContent='';
+};
+
+window.submitReport = async () => {
+  const gid=correctionGameId||document.getElementById('game-select').value;
+  if(!gid)return showRA('Please select a game','error');
+  const mine=parseInt(document.getElementById('score-mine').value), opp=parseInt(document.getElementById('score-opp').value);
+  if(isNaN(mine)||isNaN(opp))return showRA('Please enter both scores','error');
+  if(mine===opp)return showRA('Scores cannot be tied','error');
+  const sv=document.getElementById('spirit-section').style.display!=='none';
+  if(sv){
+    if(!WFDF_CATS.every(c=>spiritScores[c.key]!==undefined))return showRA('Please rate all 5 WFDF categories','error');
+    if(!document.getElementById('spirit-player').value.trim())return showRA('Spirit player nomination is required','error');
+  }
+  const g=getGameById(gid);
+  const sk=g.homeId===currentTeamId?'home':'away';
+  const stored=toHA(g,mine,opp);
+  STATE.reports[g.id+'-'+sk]={homeScore:stored.homeScore,awayScore:stored.awayScore,reporterId:currentTeamId,ts:Date.now()};
+  await saveReports();
+  if(sv){
+    const oppId=g.homeId===currentTeamId?g.awayId:g.homeId;
+    STATE.spirit[g.id+'-'+sk]={raterId:currentTeamId,ratedId:oppId,gameId:gid,scores:{...spiritScores},spiritPlayer:document.getElementById('spirit-player').value.trim(),ts:Date.now()};
+    await saveSpirit();
+  }
+  correctionGameId=null;
+  window.selectTeam(currentTeamId); showScreen('screen-team-home');
+};
+
+function showRA(msg,type){
+  const el=document.getElementById('report-alert');
+  el.className='alert alert-'+(type==='error'?'error':'success');
+  el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// Start
+initApp();
+</script>
+</body>
+</html>
