@@ -95,6 +95,8 @@ textarea{resize:vertical;min-height:60px}
 .bg-team:last-child{border-bottom:none}
 .bg-team.winner{font-weight:500;background:#EAF3DE;color:#27500A}
 .bg-team.bye-team{color:var(--color-text-secondary);font-style:italic}
+.bracket-team-row.pending{background:var(--color-background-secondary)}
+.bracket-team-row.pending .bracket-team-name,.pending-label{color:var(--color-text-secondary);font-style:italic;font-size:11px}
 .place-pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:500;background:#FAEEDA;color:#633806;margin-left:4px}
 .admin-game-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
 .sync-status{font-size:12px;padding:8px 12px;border-radius:var(--border-radius-md);margin-top:8px}
@@ -1178,28 +1180,65 @@ function buildBracketTree(bracket){
     return findTeam(id)?.name || '?';
   };
 
+  // Path labels: for each game slot, what is the "pending" label when no team is confirmed yet
+  // Format: { gameKey: { home: 'W QF1', away: 'W QF2' } }
+  const SLOT_LABELS = {
+    sf1:  { home: 'W QF1', away: 'W QF2' },
+    sf2:  { home: 'W QF3', away: 'W QF4' },
+    csf1: { home: 'L QF1', away: 'L QF2' },
+    csf2: { home: 'L QF3', away: 'L QF4' },
+    f1:   { home: 'W SF1', away: 'W SF2' },
+    f3:   { home: 'L SF1', away: 'L SF2' },
+    f5:   { home: 'W CSF1', away: 'W CSF2' },
+    f7:   { home: 'L CSF1', away: 'L CSF2' },
+  };
+
+  // Game display labels for bracket card headers
+  const GAME_LABELS = {
+    qf1: 'QF1', qf2: 'QF2', qf3: 'QF3', qf4: 'QF4',
+    sf1: 'SF1', sf2: 'SF2',
+    csf1: 'CSF1', csf2: 'CSF2',
+    f1: 'Final', f3: '3rd/4th', f5: '5th/6th', f7: '7th/8th',
+  };
+
   // Build one matchup card
   const matchupCard = (defKey, showSeed=false) => {
     const def = GAME_DEFS.find(d=>d.key===defKey);
     const {homeId,awayId,homeIsBye,awayIsBye} = resolveGame(bracket, defKey);
     const gid = bracketGameId(bracket.id, defKey);
+    const g = bracket.games?.[defKey]||{};
     const st = (homeIsBye||awayIsBye)?'bye':gameStatus(gid);
     const sc = st==='confirmed'?confirmedScore(gid):null;
-    const hN = teamName(homeId, homeIsBye);
-    const aN = teamName(awayId, awayIsBye);
+    const slots = SLOT_LABELS[defKey];
+    // For unresolved slots, show path label instead of TBD
+    const resolveLabel = (id, isBye, side) => {
+      if(isBye) return 'Bye';
+      if(id) return findTeam(id)?.name || '?';
+      return slots ? slots[side] : 'TBD';
+    };
+    const hN = resolveLabel(homeId, homeIsBye, 'home');
+    const aN = resolveLabel(awayId, awayIsBye, 'away');
+    const hPending = !homeId && !homeIsBye;
+    const aPending = !awayId && !awayIsBye;
     const hWon = sc&&sc.homeScore>sc.awayScore;
     const aWon = sc&&sc.awayScore>sc.homeScore;
     const seedH = def.phase==='qf'?def.seedH:'';
     const seedA = def.phase==='qf'?def.seedA:'';
+    const metaLine = [g.date, g.time, g.field?`Field ${g.field}`:null].filter(Boolean).join(' · ');
+    const gameLabel = GAME_LABELS[defKey] || '';
     return `<div class="bracket-matchup">
-      <div class="bracket-team-row${hWon?' winner':homeIsBye?' bye':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px 0">
+        <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em">${gameLabel}</span>
+        ${metaLine?`<span style="font-size:10px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">${esc(metaLine)}</span>`:''}
+      </div>
+      <div class="bracket-team-row${hWon?' winner':homeIsBye?' bye':hPending?' pending':''}">
         ${showSeed&&seedH?`<span class="bracket-seed">${seedH}</span>`:''}
-        <span class="bracket-team-name">${esc(hN)}</span>
+        <span class="bracket-team-name${hPending?' pending-label':''}">${esc(hN)}</span>
         ${sc?`<span class="bracket-score${hWon?' winner-score':''}">${sc.homeScore}</span>`:''}
       </div>
-      <div class="bracket-team-row${aWon?' winner':awayIsBye?' bye':''}">
+      <div class="bracket-team-row${aWon?' winner':awayIsBye?' bye':aPending?' pending':''}">
         ${showSeed&&seedA?`<span class="bracket-seed">${seedA}</span>`:''}
-        <span class="bracket-team-name">${esc(aN)}</span>
+        <span class="bracket-team-name${aPending?' pending-label':''}">${esc(aN)}</span>
         ${sc?`<span class="bracket-score${aWon?' winner-score':''}">${sc.awayScore}</span>`:''}
       </div>
     </div>`;
