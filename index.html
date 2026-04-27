@@ -445,7 +445,8 @@ async function saveGames()    { await fsSet(GAMES_DOC(),    { data: STATE.games 
 async function saveBrackets() {
   // Sanitise: Firestore rejects undefined values — replace with null
   const safe = JSON.parse(JSON.stringify(STATE.brackets, (k,v) => v === undefined ? null : v));
-  await fsSet(BRACKETS_DOC(), { data: safe });
+  // Use setDoc with merge:false to completely overwrite (avoids stale keys)
+  await setDoc(BRACKETS_DOC(), { data: safe });
 }
 async function saveReports()  { await fsSet(REPORTS_DOC(),  { data: STATE.reports }); }
 async function saveSpirit()   { await fsSet(SPIRIT_DOC(),   { data: STATE.spirit }); }
@@ -631,7 +632,7 @@ window.syncFromSheet = async () => {
     const bracketSchedule = await fetchSheetTab(sheetId, 'Bracket Schedule');
 
     showSyncStatus('Applying data…','info');
-    applySheetData(poolTeams, poolSchedule, bracketTeams, bracketSchedule);
+    await applySheetData(poolTeams, poolSchedule, bracketTeams, bracketSchedule);
     const now = new Date().toLocaleString();
     STATE.config.lastSync = now;
     await saveConfig();
@@ -646,7 +647,7 @@ window.syncFromSheet = async () => {
   }
 };
 
-function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData, bracketScheduleData) {
+async function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData, bracketScheduleData) {
   // Pools
   const poolMap = {};
   poolTeamsData.forEach(row => {
@@ -708,7 +709,17 @@ function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData, brack
   STATE.pools   = pools;
   STATE.games   = newGames;
   STATE.brackets = Object.values(bracketMap);
-  savePools(); saveGames(); saveBrackets();
+  try {
+    await savePools();
+    console.log('[Sync] savePools OK');
+    await saveGames();
+    console.log('[Sync] saveGames OK');
+    await saveBrackets();
+    console.log('[Sync] saveBrackets OK — brackets:', JSON.stringify(STATE.brackets.map(b=>({name:b.name,seeds:b.seeds}))));
+  } catch(e) {
+    console.error('[Sync] SAVE ERROR:', e);
+    throw e;
+  }
 }
 
 function showSyncStatus(msg,type) {
