@@ -1216,6 +1216,7 @@ function buildBracketTree(bracket){
     csf1: 'CSF1', csf2: 'CSF2',
     f1: 'Final', f3: '3rd/4th', f5: '5th/6th', f7: '7th/8th',
   };
+  // Note: SLOT_LABELS is defined here and patched per-call by the card() wrapper below
 
   // Build one matchup card
   const matchupCard = (defKey, showSeed=false) => {
@@ -1281,50 +1282,96 @@ function buildBracketTree(bracket){
   // Col 1: QFs, Col 2: SFs, Col 3: Final, Col 4: Placements
   const gap = (n) => `<div style="flex:${n}"></div>`;
 
+  // Determine bracket size from non-null seeds
+  const seedCount = Object.values(bracket.seeds||{}).filter(v=>v!==null&&v!==undefined).length;
+  const hasQF = seedCount >= 5;  // 5–8 teams: QF + SF + Final
+  const hasSF = seedCount >= 3;  // 3–4 teams: SF + Final (no QF)
+  // 2 teams: Final only
+
+  // Dynamic slot labels based on bracket size
+  const SLOT_LABELS_8 = {
+    sf1:  { home:'W QF1', away:'W QF2' }, sf2:  { home:'W QF3', away:'W QF4' },
+    csf1: { home:'L QF1', away:'L QF2' }, csf2: { home:'L QF3', away:'L QF4' },
+    f1:   { home:'W SF1', away:'W SF2' }, f3:   { home:'L SF1', away:'L SF2' },
+    f5:   { home:'W CSF1', away:'W CSF2' }, f7: { home:'L CSF1', away:'L CSF2' },
+  };
+  const SLOT_LABELS_4 = {
+    f1: { home:'W SF1', away:'W SF2' }, f3: { home:'L SF1', away:'L SF2' },
+  };
+  const SLOT_LABELS_2 = {};
+
+  // Override SLOT_LABELS inside matchupCard based on size
+  const effectiveSlotLabels = hasQF ? SLOT_LABELS_8 : (hasSF ? SLOT_LABELS_4 : SLOT_LABELS_2);
+
+  // Patch SLOT_LABELS inside closure — reassign after matchupCard reads it
+  // We do this by passing override into matchupCard via a wrapper
+  const card = (defKey, showSeed=false) => {
+    // Temporarily patch SLOT_LABELS for this call
+    const origSlots = SLOT_LABELS[defKey];
+    if (effectiveSlotLabels[defKey]) SLOT_LABELS[defKey] = effectiveSlotLabels[defKey];
+    else delete SLOT_LABELS[defKey];
+    const result = matchupCard(defKey, showSeed);
+    if (origSlots) SLOT_LABELS[defKey] = origSlots; else delete SLOT_LABELS[defKey];
+    return result;
+  };
+
+  // resolveGame uses bracket seeds directly — for SF without QF,
+  // we temporarily add manualHomeId/manualAwayId from seeds if not set
+  const ensureDirectSeed = (defKey, homeS, awayS) => {
+    if (!bracket.games) bracket.games = {};
+    if (!bracket.games[defKey]) bracket.games[defKey] = {field:null,date:'',time:'',manualHomeId:null,manualAwayId:null};
+    const g = bracket.games[defKey];
+    if (!g.manualHomeId) g.manualHomeId = bracket.seeds?.[homeS] || null;
+    if (!g.manualAwayId) g.manualAwayId = bracket.seeds?.[awayS] || null;
+  };
+
+  // For 3-4 team brackets, wire SF games directly from seeds
+  if (!hasQF && hasSF) {
+    // SF1: seed1 vs seed2, SF2: seed3 vs seed4
+    ensureDirectSeed('sf1', 1, 2);
+    ensureDirectSeed('sf2', 3, 4);
+  }
+  // For 2-team bracket, wire f1 directly
+  if (!hasSF) {
+    ensureDirectSeed('f1', 1, 2);
+  }
+
+  const connector = (count=1) => `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
+    ${Array(count*2).fill(0).map(()=>`<div style="border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1;min-height:20px"></div>`).join('')}
+  </div>`;
+
   // Championship side
   let champHtml = `<div class="bracket-section-label">Championship bracket</div>
   <div class="bracket-view"><div class="bracket-tree">`;
 
-  // QF column
-  champHtml += `<div class="bracket-round">
-    <div class="bracket-round-label">Quarterfinals</div>
-    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
-      ${matchupCard('qf1',true)}
-      ${matchupCard('qf2',true)}
-      ${matchupCard('qf3',true)}
-      ${matchupCard('qf4',true)}
-    </div>
-  </div>`;
+  if (hasQF) {
+    champHtml += `<div class="bracket-round">
+      <div class="bracket-round-label">Quarterfinals</div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+        ${card('qf1',true)}${card('qf2',true)}${card('qf3',true)}${card('qf4',true)}
+      </div>
+    </div>`;
+    champHtml += connector(2);
+  }
 
-  // Connector
-  champHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
-    ${['sf1','sf1','sf2','sf2'].map(()=>`<div style="height:30px;border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1"></div>`).join('')}
-  </div>`;
+  if (hasSF) {
+    champHtml += `<div class="bracket-round">
+      <div class="bracket-round-label">Semifinals</div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+        ${card('sf1',!hasQF)}${card('sf2',!hasQF)}
+      </div>
+    </div>`;
+    champHtml += connector(1);
+  }
 
-  // SF column
-  champHtml += `<div class="bracket-round">
-    <div class="bracket-round-label">Semifinals</div>
-    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
-      ${matchupCard('sf1')}
-      ${matchupCard('sf2')}
-    </div>
-  </div>`;
-
-  // Connector
-  champHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
-    <div style="border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1;min-height:60px"></div>
-  </div>`;
-
-  // Finals column
   champHtml += `<div class="bracket-round">
     <div class="bracket-round-label">Finals</div>
     <div style="display:flex;flex-direction:column;flex:1;justify-content:space-around">
-      ${matchupCard('f1')}
-      <div style="margin-top:12px">${matchupCard('f3')}</div>
+      ${card('f1',!hasSF)}
+      <div style="margin-top:12px">${card('f3')}</div>
     </div>
   </div>`;
 
-  // Placement column
   champHtml += `<div class="placement-col">
     <div class="bracket-round-label">Placement</div>
     ${placementEntry('f1','Gold','gold')}
@@ -1335,39 +1382,39 @@ function buildBracketTree(bracket){
 
   champHtml += `</div></div>`;
 
-  // Consolation side
-  let consolHtml = `<div class="bracket-section-label" style="color:#534AB7">Consolation bracket</div>
-  <div class="bracket-view"><div class="bracket-tree">`;
+  // Consolation side — only shown for 5+ teams
+  let consolHtml = '';
+  if (hasQF) {
+    consolHtml = `<div class="bracket-section-label" style="color:#534AB7">Consolation bracket</div>
+    <div class="bracket-view"><div class="bracket-tree">`;
 
-  consolHtml += `<div class="bracket-round">
-    <div class="bracket-round-label">Consolation SFs</div>
-    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
-      ${matchupCard('csf1')}
-      ${matchupCard('csf2')}
-    </div>
-  </div>`;
+    consolHtml += `<div class="bracket-round">
+      <div class="bracket-round-label">Consolation SFs</div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+        ${card('csf1')}${card('csf2')}
+      </div>
+    </div>`;
 
-  consolHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
-    <div style="border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1;min-height:60px"></div>
-  </div>`;
+    consolHtml += connector(1);
 
-  consolHtml += `<div class="bracket-round">
-    <div class="bracket-round-label">Finals</div>
-    <div style="display:flex;flex-direction:column;flex:1;justify-content:space-around">
-      ${matchupCard('f5')}
-      <div style="margin-top:12px">${matchupCard('f7')}</div>
-    </div>
-  </div>`;
+    consolHtml += `<div class="bracket-round">
+      <div class="bracket-round-label">Finals</div>
+      <div style="display:flex;flex-direction:column;flex:1;justify-content:space-around">
+        ${card('f5')}
+        <div style="margin-top:12px">${card('f7')}</div>
+      </div>
+    </div>`;
 
-  consolHtml += `<div class="placement-col">
-    <div class="bracket-round-label">Placement</div>
-    ${placementEntry('f5','5th','fourth')}
-    ${placementEntry('f5','6th','fourth')}
-    ${placementEntry('f7','7th','fourth')}
-    ${placementEntry('f7','8th','fourth')}
-  </div>`;
+    consolHtml += `<div class="placement-col">
+      <div class="bracket-round-label">Placement</div>
+      ${placementEntry('f5','5th','fourth')}
+      ${placementEntry('f5','6th','fourth')}
+      ${placementEntry('f7','7th','fourth')}
+      ${placementEntry('f7','8th','fourth')}
+    </div>`;
 
-  consolHtml += `</div></div>`;
+    consolHtml += `</div></div>`;
+  }
 
   return champHtml + consolHtml;
 }
