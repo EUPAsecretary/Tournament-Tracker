@@ -106,6 +106,34 @@ code{font-family:monospace;font-size:12px;background:var(--color-background-seco
 @keyframes spin{to{transform:rotate(360deg)}}
 .realtime-dot{display:inline-block;width:7px;height:7px;background:#1D9E75;border-radius:50%;margin-right:4px;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.bracket-view{overflow-x:auto;padding-bottom:1rem;-webkit-overflow-scrolling:touch}
+.bracket-tree{display:flex;gap:0;min-width:600px;font-size:13px}
+.bracket-round{display:flex;flex-direction:column;flex:1;min-width:150px}
+.bracket-round-label{text-align:center;font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;padding:0 8px 10px}
+.bracket-spacer{flex:1}
+.bracket-matchup{display:flex;flex-direction:column;position:relative;margin:0 0 0 0}
+.bracket-team-row{display:flex;align-items:center;padding:5px 10px;font-size:12px;background:#fff;border:0.5px solid var(--color-border-tertiary);min-height:30px;position:relative}
+.bracket-team-row:first-child{border-radius:6px 6px 0 0;border-bottom:0.5px dashed var(--color-border-tertiary)}
+.bracket-team-row:last-child{border-radius:0 0 6px 6px}
+.bracket-team-row.winner{font-weight:600;background:#EAF3DE;color:#27500A}
+.bracket-team-row.bye{color:var(--color-text-secondary);font-style:italic;background:#fafaf8}
+.bracket-team-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bracket-score{font-weight:600;margin-left:8px;min-width:18px;text-align:right;color:#1a1a1a}
+.bracket-score.winner-score{color:#27500A}
+.bracket-connector{position:relative;display:flex;align-items:center}
+.bracket-seed{font-size:10px;color:#aaa;margin-right:5px;min-width:12px}
+.placement-col{display:flex;flex-direction:column;justify-content:space-around;min-width:130px;padding-left:16px}
+.placement-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px}
+.placement-medal{font-weight:700;font-size:12px;min-width:48px}
+.placement-medal.gold{color:#B8860B}
+.placement-medal.silver{color:#666}
+.placement-medal.bronze{color:#8B4513}
+.placement-medal.fourth{color:var(--color-text-secondary)}
+.bracket-tabs{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.bracket-tab-btn{padding:6px 16px;border:0.5px solid var(--color-border-secondary);border-radius:20px;background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-sans);transition:all .15s}
+.bracket-tab-btn.active{background:var(--color-text-primary);color:#fff;border-color:var(--color-text-primary)}
+.bracket-section-label{font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.25rem 0 .75rem}
 </style>
 </head>
 <body>
@@ -1085,41 +1113,185 @@ function cDiff(a,b,games,poolId){
 
 // ── Public bracket ────────────────────────────────────────────
 function renderPublicBrackets(){
-  const hasAny=STATE.brackets.some(b=>Object.keys(b.seeds||{}).length>0);
-  if(!hasAny){document.getElementById('th-bracket').innerHTML='<div class="empty">Brackets not set up yet</div>';return;}
-  const renderPubGame=(bracket,dk,cls)=>{
-    const def=GAME_DEFS.find(d=>d.key===dk);
-    const{homeId,awayId,homeIsBye,awayIsBye}=resolveGame(bracket,dk);
-    const gid=bracketGameId(bracket.id,dk);
-    const g=bracket.games?.[dk]||{};
-    const st=(homeIsBye||awayIsBye)?'bye':gameStatus(gid);
-    const sc=st==='confirmed'?confirmedScore(gid):null;
-    const hN=homeIsBye?'Bye':homeId?findTeam(homeId)?.name||'?':'TBD';
-    const aN=awayIsBye?'Bye':awayId?findTeam(awayId)?.name||'?':'TBD';
-    const meta=metaBadges(g.field,g.date,g.time);
-    const hW=sc&&sc.homeScore>sc.awayScore,aW=sc&&sc.awayScore>sc.homeScore;
-    return`<div class="bg-card ${cls}">
-      <div class="bg-header"><span>${def.label}${def.place?` <span class="place-pill">${def.place}</span>`:''}</span><span style="font-size:10px">${meta}</span></div>
-      <div class="bg-team${hW?' winner':homeIsBye?' bye-team':''}">${esc(hN)}<span style="font-weight:500;margin-left:auto">${sc?sc.homeScore:''}</span></div>
-      <div class="bg-team${aW?' winner':awayIsBye?' bye-team':''}">${esc(aN)}<span style="font-weight:500;margin-left:auto">${sc?sc.awayScore:''}</span></div>
+  const el = document.getElementById('th-bracket');
+  if(!STATE.brackets.length || STATE.brackets.every(b=>!Object.keys(b.seeds||{}).length)){
+    el.innerHTML='<div class="empty">Brackets not set up yet</div>';return;
+  }
+  const validBrackets = STATE.brackets.filter(b=>Object.keys(b.seeds||{}).length>0);
+  if(!validBrackets.length){el.innerHTML='<div class="empty">No seeds assigned yet</div>';return;}
+
+  // Tab buttons if multiple brackets
+  let html='';
+  if(validBrackets.length>1){
+    html+=`<div class="bracket-tabs">`;
+    validBrackets.forEach((b,i)=>{
+      html+=`<button class="bracket-tab-btn${i===0?' active':''}" onclick="switchBracketTab(this,'bracket-view-${b.id}')">${esc(b.name)}</button>`;
+    });
+    html+=`</div>`;
+  }
+
+  validBrackets.forEach((bracket,bi)=>{
+    html+=`<div id="bracket-view-${bracket.id}" style="${bi>0?'display:none':''}">`;
+    html+=buildBracketTree(bracket);
+    html+=`</div>`;
+  });
+  el.innerHTML=html;
+}
+
+window.switchBracketTab = (btn, targetId) => {
+  // Toggle tab buttons
+  btn.closest('.bracket-tabs').querySelectorAll('.bracket-tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Toggle bracket views
+  document.querySelectorAll('#th-bracket > div[id^="bracket-view-"]').forEach(d=>d.style.display='none');
+  document.getElementById(targetId).style.display='block';
+};
+
+function buildBracketTree(bracket){
+  // Helper to get team name for a slot
+  const teamName = (id, isBye) => {
+    if(isBye) return 'Bye';
+    if(!id) return 'TBD';
+    return findTeam(id)?.name || '?';
+  };
+
+  // Build one matchup card
+  const matchupCard = (defKey, showSeed=false) => {
+    const def = GAME_DEFS.find(d=>d.key===defKey);
+    const {homeId,awayId,homeIsBye,awayIsBye} = resolveGame(bracket, defKey);
+    const gid = bracketGameId(bracket.id, defKey);
+    const st = (homeIsBye||awayIsBye)?'bye':gameStatus(gid);
+    const sc = st==='confirmed'?confirmedScore(gid):null;
+    const hN = teamName(homeId, homeIsBye);
+    const aN = teamName(awayId, awayIsBye);
+    const hWon = sc&&sc.homeScore>sc.awayScore;
+    const aWon = sc&&sc.awayScore>sc.homeScore;
+    const seedH = def.phase==='qf'?def.seedH:'';
+    const seedA = def.phase==='qf'?def.seedA:'';
+    return `<div class="bracket-matchup">
+      <div class="bracket-team-row${hWon?' winner':homeIsBye?' bye':''}">
+        ${showSeed&&seedH?`<span class="bracket-seed">${seedH}</span>`:''}
+        <span class="bracket-team-name">${esc(hN)}</span>
+        ${sc?`<span class="bracket-score${hWon?' winner-score':''}">${sc.homeScore}</span>`:''}
+      </div>
+      <div class="bracket-team-row${aWon?' winner':awayIsBye?' bye':''}">
+        ${showSeed&&seedA?`<span class="bracket-seed">${seedA}</span>`:''}
+        <span class="bracket-team-name">${esc(aN)}</span>
+        ${sc?`<span class="bracket-score${aWon?' winner-score':''}">${sc.awayScore}</span>`:''}
+      </div>
     </div>`;
   };
-  let html='';
-  STATE.brackets.forEach(bracket=>{
-    if(!Object.keys(bracket.seeds||{}).length)return;
-    html+=`<div class="card"><h3>${esc(bracket.name)}</h3>`;
-    html+=`<div class="section-label" style="color:#0F6E56">Quarter-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-    html+=renderPubGame(bracket,'qf1','champ')+renderPubGame(bracket,'qf2','champ')+renderPubGame(bracket,'qf3','champ')+renderPubGame(bracket,'qf4','champ');
-    html+=`</div><div class="section-label" style="color:#0F6E56">Championship semi-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-    html+=renderPubGame(bracket,'sf1','champ')+renderPubGame(bracket,'sf2','champ');
-    html+=`</div><div class="section-label" style="color:#534AB7">Consolation semi-finals</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-    html+=renderPubGame(bracket,'csf1','consol')+renderPubGame(bracket,'csf2','consol');
-    html+=`</div><div class="section-label" style="color:#854F0B">Finals & placement</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
-    html+=renderPubGame(bracket,'f1','place')+renderPubGame(bracket,'f3','place')+renderPubGame(bracket,'f5','place')+renderPubGame(bracket,'f7','place');
-    html+=`</div></div>`;
-  });
-  html+=`<p style="font-size:12px;color:var(--color-text-secondary);margin-top:4px">Teams advance automatically once both teams confirm a score.</p>`;
-  document.getElementById('th-bracket').innerHTML=html;
+
+  // Placement entry
+  const placementEntry = (defKey, label, medalClass) => {
+    const {homeId,awayId,homeIsBye,awayIsBye} = resolveGame(bracket, defKey);
+    const gid = bracketGameId(bracket.id, defKey);
+    const st = gameStatus(gid);
+    const sc = st==='confirmed'?confirmedScore(gid):null;
+    let winner = null;
+    if(sc){
+      winner = sc.homeScore>sc.awayScore?homeId:awayId;
+    }
+    const name = winner?teamName(winner,false):'TBD';
+    return `<div class="placement-item">
+      <span class="placement-medal ${medalClass}">${label}</span>
+      <span style="font-weight:${medalClass==='gold'||medalClass==='silver'||medalClass==='bronze'?'600':'400'}">${esc(name)}</span>
+    </div>`;
+  };
+
+  // Build the championship bracket columns
+  // Col 1: QFs, Col 2: SFs, Col 3: Final, Col 4: Placements
+  const gap = (n) => `<div style="flex:${n}"></div>`;
+
+  // Championship side
+  let champHtml = `<div class="bracket-section-label">Championship bracket</div>
+  <div class="bracket-view"><div class="bracket-tree">`;
+
+  // QF column
+  champHtml += `<div class="bracket-round">
+    <div class="bracket-round-label">Quarterfinals</div>
+    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+      ${matchupCard('qf1',true)}
+      ${matchupCard('qf2',true)}
+      ${matchupCard('qf3',true)}
+      ${matchupCard('qf4',true)}
+    </div>
+  </div>`;
+
+  // Connector
+  champHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
+    ${['sf1','sf1','sf2','sf2'].map(()=>`<div style="height:30px;border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1"></div>`).join('')}
+  </div>`;
+
+  // SF column
+  champHtml += `<div class="bracket-round">
+    <div class="bracket-round-label">Semifinals</div>
+    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+      ${matchupCard('sf1')}
+      ${matchupCard('sf2')}
+    </div>
+  </div>`;
+
+  // Connector
+  champHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
+    <div style="border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1;min-height:60px"></div>
+  </div>`;
+
+  // Finals column
+  champHtml += `<div class="bracket-round">
+    <div class="bracket-round-label">Finals</div>
+    <div style="display:flex;flex-direction:column;flex:1;justify-content:space-around">
+      ${matchupCard('f1')}
+      <div style="margin-top:12px">${matchupCard('f3')}</div>
+    </div>
+  </div>`;
+
+  // Placement column
+  champHtml += `<div class="placement-col">
+    <div class="bracket-round-label">Placement</div>
+    ${placementEntry('f1','Gold','gold')}
+    ${placementEntry('f1','Silver','silver')}
+    ${placementEntry('f3','Bronze','bronze')}
+    ${placementEntry('f3','4th','fourth')}
+  </div>`;
+
+  champHtml += `</div></div>`;
+
+  // Consolation side
+  let consolHtml = `<div class="bracket-section-label" style="color:#534AB7">Consolation bracket</div>
+  <div class="bracket-view"><div class="bracket-tree">`;
+
+  consolHtml += `<div class="bracket-round">
+    <div class="bracket-round-label">Consolation SFs</div>
+    <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-around">
+      ${matchupCard('csf1')}
+      ${matchupCard('csf2')}
+    </div>
+  </div>`;
+
+  consolHtml += `<div style="width:24px;display:flex;flex-direction:column;justify-content:space-around">
+    <div style="border-right:1.5px solid #ccc;border-top:1.5px solid #ccc;border-bottom:1.5px solid #ccc;flex:1;min-height:60px"></div>
+  </div>`;
+
+  consolHtml += `<div class="bracket-round">
+    <div class="bracket-round-label">Finals</div>
+    <div style="display:flex;flex-direction:column;flex:1;justify-content:space-around">
+      ${matchupCard('f5')}
+      <div style="margin-top:12px">${matchupCard('f7')}</div>
+    </div>
+  </div>`;
+
+  consolHtml += `<div class="placement-col">
+    <div class="bracket-round-label">Placement</div>
+    ${placementEntry('f5','5th','fourth')}
+    ${placementEntry('f5','6th','fourth')}
+    ${placementEntry('f7','7th','fourth')}
+    ${placementEntry('f7','8th','fourth')}
+  </div>`;
+
+  consolHtml += `</div></div>`;
+
+  return champHtml + consolHtml;
 }
 
 // ── Spirit leaderboard ────────────────────────────────────────
