@@ -662,21 +662,26 @@ async function applySheetData(poolTeamsData, poolScheduleData, bracketTeamsData,
   const fmap = {};
   STATE.games.forEach(g => { if(g.field||g.date||g.time) fmap[g.homeId+'-'+g.awayId]={field:g.field,date:g.date,time:g.time}; });
   let gn=1; const newGames=[];
-  pools.forEach(pool => {
-    const ts = pool.teams;
-    for (let i=0;i<ts.length;i++) for (let j=i+1;j<ts.length;j++) {
-      const m = fmap[ts[i].id+'-'+ts[j].id]||fmap[ts[j].id+'-'+ts[i].id]||{};
-      newGames.push({ id:'pg'+gn++, poolId:pool.id, homeId:ts[i].id, awayId:ts[j].id, field:m.field||null, date:m.date||'', time:m.time||'' });
-    }
-  });
+  const allTeams = pools.flatMap(p=>p.teams);
+  // Only create games that are explicitly listed in the Pool Schedule sheet
   poolScheduleData.forEach(row => {
     const hN=(row['Home Team']||'').trim(), aN=(row['Away Team']||'').trim();
     if (!hN||!aN) return;
-    const hT=pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===hN.toLowerCase());
-    const aT=pools.flatMap(p=>p.teams).find(t=>t.name.toLowerCase()===aN.toLowerCase());
+    const hT=allTeams.find(t=>t.name.toLowerCase()===hN.toLowerCase());
+    const aT=allTeams.find(t=>t.name.toLowerCase()===aN.toLowerCase());
     if (!hT||!aT) return;
-    const g=newGames.find(x=>(x.homeId===hT.id&&x.awayId===aT.id)||(x.homeId===aT.id&&x.awayId===hT.id));
-    if (g) { g.field=row['Field']?parseInt(row['Field'])||null:null; g.date=(row['Date']||'').trim(); g.time=(row['Time']||'').trim(); }
+    // Find the pool this game belongs to (both teams must be in same pool)
+    const pool = pools.find(p=>p.teams.some(t=>t.id===hT.id)&&p.teams.some(t=>t.id===aT.id));
+    if (!pool) return;
+    newGames.push({
+      id: 'pg'+gn++,
+      poolId: pool.id,
+      homeId: hT.id,
+      awayId: aT.id,
+      field: row['Field']?parseInt(row['Field'])||null:null,
+      date: (row['Date']||'').trim(),
+      time: (row['Time']||'').trim()
+    });
   });
 
   // Brackets
