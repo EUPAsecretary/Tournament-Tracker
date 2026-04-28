@@ -440,8 +440,8 @@ function hideLoading() {
 }
 
 // ── Save helpers ──────────────────────────────────────────────
-async function savePools()    { await fsSet(POOLS_DOC(),    { data: STATE.pools }); }
-async function saveGames()    { await fsSet(GAMES_DOC(),    { data: STATE.games }); }
+async function savePools()    { await setDoc(POOLS_DOC(),    { data: STATE.pools }); }
+async function saveGames()    { await setDoc(GAMES_DOC(),    { data: STATE.games }); }
 async function saveBrackets() {
   // Sanitise: Firestore rejects undefined values — replace with null
   const safe = JSON.parse(JSON.stringify(STATE.brackets, (k,v) => v === undefined ? null : v));
